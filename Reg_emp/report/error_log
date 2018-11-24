@@ -1,0 +1,6 @@
+[05-Sep-2018 00:08:22 UTC] PHP Deprecated:  mysql_connect(): The mysql extension is deprecated and will be removed in the future: use mysqli or PDO instead in /home/adminskycom/public_html/sistema/Reg_emp/db_funcs.php on line 32
+[05-Sep-2018 00:08:22 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Reg_emp/report/xls_rpthistemp.php on line 10
+[05-Sep-2018 00:08:22 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Reg_emp/report/xls_rpthistemp.php on line 11
+[05-Sep-2018 00:15:40 UTC] PHP Deprecated:  mysql_connect(): The mysql extension is deprecated and will be removed in the future: use mysqli or PDO instead in /home/adminskycom/public_html/sistema/Reg_emp/db_funcs.php on line 32
+[05-Sep-2018 00:15:40 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Reg_emp/report/xls_rpthistemp.php on line 10
+[05-Sep-2018 00:15:40 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Reg_emp/report/xls_rpthistemp.php on line 11

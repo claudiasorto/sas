@@ -1,0 +1,5 @@
+<p:dataTable id="tablaEspecimenDtb" value="#{fichaBean.listaEspecimens}" var="especimen"
+rowKey="#{especimen.codigoespecimen}" resizableColumns="true" paginator="true"
+paginatorPosition="bottom" rows="10"
+selection="#{fichaBean.especimenSeleccionado}" selectionMode="single" emptyMessage="No hay registros disponibles."
+

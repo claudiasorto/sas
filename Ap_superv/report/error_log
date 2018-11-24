@@ -1,0 +1,14 @@
+[05-Sep-2018 00:12:16 UTC] PHP Deprecated:  mysql_connect(): The mysql extension is deprecated and will be removed in the future: use mysqli or PDO instead in /home/adminskycom/public_html/sistema/Ap_superv/db_funcs.php on line 31
+[05-Sep-2018 00:12:16 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 9
+[05-Sep-2018 00:12:16 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 10
+[05-Sep-2018 00:12:16 UTC] PHP Notice:  Undefined index: typesanction_ap in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 44
+[05-Sep-2018 00:12:16 UTC] PHP Notice:  Undefined index: typesanction_ap in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 47
+[05-Sep-2018 00:12:16 UTC] PHP Notice:  Undefined index: typesanction_ap in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 50
+[05-Sep-2018 00:12:16 UTC] PHP Notice:  Undefined index: id_tpdisciplinary in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 54
+[05-Sep-2018 00:12:42 UTC] PHP Deprecated:  mysql_connect(): The mysql extension is deprecated and will be removed in the future: use mysqli or PDO instead in /home/adminskycom/public_html/sistema/Ap_superv/db_funcs.php on line 31
+[05-Sep-2018 00:12:42 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 9
+[05-Sep-2018 00:12:42 UTC] PHP Deprecated:  Function split() is deprecated in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 10
+[05-Sep-2018 00:12:42 UTC] PHP Notice:  Undefined index: typesanction_ap in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 44
+[05-Sep-2018 00:12:42 UTC] PHP Notice:  Undefined index: typesanction_ap in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 47
+[05-Sep-2018 00:12:42 UTC] PHP Notice:  Undefined index: typesanction_ap in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 50
+[05-Sep-2018 00:12:42 UTC] PHP Notice:  Undefined index: id_tpdisciplinary in /home/adminskycom/public_html/sistema/Ap_superv/report/xls_rptaptotal.php on line 54
