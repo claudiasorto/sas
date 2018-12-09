@@ -121,6 +121,7 @@ class APPR
 		"select ap.id_apxemp, ".
 			"concat(e.firstname,' ',e.lastname) empleado, ".
 			"get_ultimaplaza(e.employee_id) plaza_empleado, ".
+			"'' result_empleado, ".
 			"'________________________' linea_empleado, ".
 			"concat(cr.firstname,' ',cr.lastname) creado_por, ".
 			"get_ultimaplaza(cr.employee_id) plaza_creado, ".
@@ -141,7 +142,8 @@ class APPR
 		    "if(appr_generalman='Y',ifnull(concat(gr.firstname,' ',gr.lastname),'Pendiente de aprobacion'),'') gerente, ".
 		    "if(appr_generalman='Y',ifnull(get_ultimaplaza(gr.employee_id),'Gerente general'),'') plaza_gerente, ".
 		    "if(appr_generalman='Y',elt(field(ap.approved_general,'S','N'),'Aprobado','Rechazado'),'') result_gerente, ".
-		    "if(appr_generalman='Y',elt(field(ap.approved_general,'S','N'),'________________________','________________________'),'') linea_gerente ".
+		    "if(appr_generalman='Y',elt(field(ap.approved_general,'S','N'),'________________________','________________________'),'') linea_gerente, ".
+		    "apt.inactive_employee ".
 		"from apxemp ap inner join employees e on ap.employee_id = e.employee_id ".
 			"inner join employees cr on cr.employee_id = ap.autor_ap ".
 			"inner join type_ap apt on apt.id_tpap = ap.id_tpap ".
@@ -155,11 +157,19 @@ class APPR
 
 		$rslt = '';
 
-		$rslt .= '<tr><td><br><br></tr></tr><tr class="txtPag">'.
-				'<td colspan="2" align="center">'.$dtF['0']['linea_empleado'].
+		$rslt .= '<tr><td><br><br></tr></tr><tr class="txtPag">';
+				//No mostrar seccion de firmas de empleado si es AP de baja
+				/*if($dtF['0']['inactive_employee'] == 'Y'){
+					$rslt .= '<td colspan="2" align="center"><br><br><br></td>';
+
+				}
+				else{*/
+					$rslt .= '<td colspan="2" align="center">'.$dtF['0']['linea_empleado'].
 											'<br>'.$dtF['0']['empleado'].
-											'<br>'.$dtF['0']['plaza_empleado'].'</td>'.
-				'<td colspan="2" align="center">'.$dtF['0']['linea_wr'].
+											'<br>'.$dtF['0']['plaza_empleado'].
+											'<br>'.$dtF['0']['result_empleado'].'</td>';
+				//}
+				$rslt .= '<td colspan="2" align="center">'.$dtF['0']['linea_wr'].
 											'<br>'.$dtF['0']['worforce'].
 											'<br>'.$dtF['0']['plaza_wr'].
 											'<br>'.$dtF['0']['result_wr'].'</td></tr>'.
@@ -353,7 +363,8 @@ class APPR
 				"if(rol<>'GERENTE DE AREA' and appr_area='Y','GERENTE DE AREA','X') appr_area, ".
 				"if(rol<>'WORKFORCE' and appr_workforce='Y','WORKFORCE','X') appr_work, ".
 				"if(rol<>'RECURSOS HUMANOS' and appr_hr='Y','RECURSOS HUMANOS','X') appr_hr, ".
-				"if(rol<>'GERENCIA' and appr_generalman='Y','GERENCIA','X') appr_generalman ".
+				"if(rol<>'GERENCIA' and appr_generalman='Y','GERENCIA','X') appr_generalman, ".
+				"inactive_employee ".
 				"from( ".
 				"select concat(cr.firstname,' ',cr.lastname) creado_por, ".
 					"cr.email cr_email, ".
@@ -371,6 +382,7 @@ class APPR
 					"apt.appr_hr, ".
 					"apt.appr_generalman, ".
 					"cr.employee_id, ".
+					"apt.inactive_employee, ".
 					"(select name_role ".
 					"from placexdep pd inner join user_roles ur on pd.id_role = ur.id_role ".
 						"inner join plazaxemp pe on pd.id_placexdep = pe.id_placexdep ".
@@ -399,6 +411,13 @@ class APPR
 					$correos .= ',';
 				}
 				$correos .= $dtHeader['0']['email'];
+			}
+
+			if($dtHeader['0']['inactive_employee'] == 'Y'){
+				if(strlen($correos)>0){
+					$correos .= ',';
+				}
+				$correos .= 'it@skycomcallcenter.com';
 			}
 
 			$msj .= '<br/><b>Tipo de AP: </b> '.$dtHeader['0']['name_tpap'];

@@ -87,7 +87,7 @@ $oFec = new OFECHA;
     			"APPROVED_AREA,IFNULL(AUTOR_HR,0) AUTOR_HR, APPROVED_HR, IFNULL(AUTOR_GENERALMAN,0) ".
     			"AUTOR_GENERALMAN, APPROVED_GENERAL, COMMENT_AP, STATUS_AP, REJECTED_COMMENTS, APPROVED_STATUS, ".
 				"ID_PLACEXDEP_NEW, ID_PLACEXDEP_OLD, SUPERVISOR_NEW, SUPERVISOR_OLD ".
-				"FROM APXEMP where ID_APXEMP = ".$IdAp;
+				"FROM apxemp where ID_APXEMP = ".$IdAp;
 		$dbEx = new DBX;
 		$dtAp = $dbEx->selSql($sqlText);
 		//Verificamos si la AP ya ha sido aprobada, sino verificamos

@@ -381,9 +381,6 @@ else{
 					"where employee_id = ".$employees[$i]['employee_id']." and payroll_request_id = ".$request_id." and instr(col7,'Total') = 0";
 			}
 			else if ($payroll_type == "Workforce"){
-			    /*$sqlText = "select time_format(sec_to_time(sum(time_to_sec(col1)) + sum(time_to_sec(col2)) ),'%H:%i:%s') as tiempo, ".
-				" time_format(sec_to_time(sum(time_to_sec(col2)) ),'%H:%i:%s') as noche ".
-				" from payroll_batch where employee_id = ".$employees[$i]['employee_id']." and PAYROLL_REQUEST_ID = ".$request_id;  */
 				
 				$sqlText = "select time_format(sec_to_time(sum(time_to_sec(pb.col1)) ),'%H:%i:%s') as tiempo, ".
 				" time_format(sec_to_time(sum(time_to_sec(pb.col2)) ),'%H:%i:%s') as noche ".
@@ -461,7 +458,10 @@ else{
 						}
 						else{
 							$total = sumarHoras($totalHoras,$horasPay);
-                            if(restarHoras($HProg,$total) == "00:00:00"){
+                            if($HProg==$total){
+                            	$exception = 0;
+                            }
+                            else if(restarHoras($HProg,$total) == "00:00:00"){
 								$exception = 2;
 								$horasExc = restarHoras($total,$HProg);
 								$horasPay = restarHoras($horasPay, $horasExc);
@@ -485,10 +485,6 @@ else{
 						$dtC = $dbEx->selSql($sqlText);
 						if($dbEx->numrows>0){
 							//Se actualizan las horas nocturas si existe un registro de horas nocturas siempre y cuando no se este cargando hora noctura en el csv
-							/*if($dtC['0']['payroll_nigth']>0 and $noche == "00:00:00"){
-								$dia = restarHoras($dia,$dtC['0']['payroll_nigth']);
-								$noche = $dtC['0']['payroll_nigth'];
-							}   */
 							$sqlText = "update payroll set payroll_htotal='".$horasPay."', payroll_daytime='".$dia."', payroll_nigth='".$noche."' where payroll_id=".$dtC['0']['payroll_id'];
 							$dbEx->updSql($sqlText);
 						}
@@ -524,10 +520,6 @@ else{
 						$dtC = $dbEx->selSql($sqlText);
 						if($dbEx->numrows>0){
 
-							/*if($dtC['0']['payroll_nigth']>0 and $horasNoche == "00:00:00"){
-								$dia = restarHoras($dia,$dtC['0']['payroll_nigth']);
-								$noche = $dtC['0']['payroll_nigth'];
-							}  */
 							$sqlText = "update payroll set payroll_htotal='".$horasPay."', payroll_daytime='".$dia."', payroll_nigth='".$noche."' where payroll_id=".$dtC['0']['payroll_id'];
 							$dbEx->updSql($sqlText);
 						}
