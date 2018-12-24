@@ -60,6 +60,11 @@ else{
 }//Termina else de doc
 //Cantidad de dias a cargar
 $cantDias = $_POST['lsDias'];
+
+	//Insertar la solicitud
+	$sqlText = "insert into schedule_request(created_by) values ('".$_SESSION['usr_id']."')";
+	$dbEx->insSql($sqlText);
+	$reqId = $dbEx->insertID;
 	
 	for($i=0; $i<$row; $i++ ){
 		$sqlText = "select employee_id from employees where username='".$csv[$i]['badge']."' and user_status=1";
@@ -75,32 +80,36 @@ $cantDias = $_POST['lsDias'];
 				//Las horas programadas se pondra como hora de entrada a las 7am sin lunch
 				if($dbEx->numrows>0){
 					//$sqlText = "update schedules set sch_proghrs='".$csv[$i][$j]."' where sch_id=".$dtSch['0']['sch_id'];
-					if (floatval($csv[$i][$j]) == 0){
+					//Para carga de horas cero
+					/*if (floatval($csv[$i][$j]) == 0){
 					    $sqlText = "update schedules set sch_entry = null, sch_departure = null, sch_lunchin = null, sch_lunchout = null, ".
 						" sch_break1in = null, sch_break1out = null, sch_break2in = null, sch_break2out = null ".
-						" where sch_id=".$dtSch['0']['sch_id'];
+						" where sch_id=".$dtSch['0']['sch_id']." and sch_request_id <> ".$reqId;
 						$dbEx->updSql($sqlText);
 					}
-					else if(floatval($csv[$i][$j]) > 0){
+					else if(floatval($csv[$i][$j]) > 0){ */
 						//$sqlText = "update schedules set sch_proghrs='".$csv[$i][$j]."' where sch_id=".$dtSch['0']['sch_id'];
-						$sqlText = "update schedules set sch_entry = '07:00:00', sch_departure = sec_to_time(time_to_sec('07:00:00') + ".floatval($csv[$i][$j])."*3600), ".
+						$sqlText = "update schedules sc set sch_entry = '00:00:00', ".
+						"sch_departure = sec_to_time(time_to_sec('00:00:00') + ".floatval($csv[$i][$j])."*3600 ".
+						" + if(sch_request_id = ".$reqId.",time_to_sec(sch_departure),0) , ".
 						" sch_lunchin = null, sch_lunchout = null, ".
-						" sch_break1in = null, sch_break1out = null, sch_break2in = null, sch_break2out = null ".
+						" sch_break1in = null, sch_break1out = null, sch_break2in = null, sch_break2out = null , sch_request_id = ".$reqId." ".
 						" where sch_id=".$dtSch['0']['sch_id'];
 						
 						$dbEx->updSql($sqlText);
-	 				}
+	 				//}
 				}
 				else{
+					//Para carga de horas cero
 				    if (floatval($csv[$i][$j]) == 0){
 						$sqlText = "insert into schedules set employee_id=".$dtE['0']['employee_id'].", sch_date='".date("Y-m-d",$fecha)."', ".
-						" sch_entry = null, sch_departure = null";
+						" sch_entry = null, sch_departure = null, sch_request_id = ".$reqId;
 					
 						$dbEx->insSql($sqlText);
 	 				}
 	 				else if(floatval($csv[$i][$j]) > 0){
 	 				    $sqlText = "insert into schedules set employee_id=".$dtE['0']['employee_id'].", sch_date='".date("Y-m-d",$fecha)."', ".
-						" sch_entry = '07:00:00', sch_departure = sec_to_time(time_to_sec('07:00:00') + ".floatval($csv[$i][$j])." *3600)";
+						" sch_entry = '00:00:00', sch_departure = sec_to_time(time_to_sec('00:00:00') + ".floatval($csv[$i][$j])." *3600) , sch_request_id = ".$reqId;
 
 						$dbEx->insSql($sqlText);
 	  				}

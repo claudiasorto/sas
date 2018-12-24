@@ -276,40 +276,7 @@ else{
 			}
 		}
  	}
-
-	//Buscar si hay planilla aun sin enviar que cubra el periodo cargado
-	$sqlText = "select paystub_ini, paystub_fin, datediff(paystub_fin,paystub_ini) count_days ".
-		"from paystub where '".$fecha."' between  paystub_ini and paystub_fin and paystub_status = ''";
-
-	$dtPaystub = $dbEx->selSql($sqlText);
-
-	if($dbEx->numrows>0){
-		$InicioPago = $dtPaystub['0']['paystub_ini'];
-		$FinPago = $dtPaystub['0']['paystub_fin'];
-		$ndias = $dtPaystub['0']['count_days'];
-	}
-	//Si no hay paystub tomar como fecha inicial la ultima planilla mas 1 dia y fecha fin la ultima planilla mas 15 dias
-
-	else{
-        $sqlText = "select date_format(DATE_ADD(paystub_fin, INTERVAL 1 DAY),'%Y-%m-%d') as paystub_ini, ".
- 				" date_format(DATE_ADD(paystub_fin, INTERVAL 15 DAY),'%Y-%m-%d') as paystub_fin ".
-				" from paystub where 1 = 1 ". //paystub_status = 'A' ".
-				" and paystub_fin=(select max(paystub_fin) from paystub where paystub_fin < '".$fecha."') ";
-				
-       	$dtPaystub = $dbEx->selSql($sqlText);
-		if($dbEx->numrows>0){
-			$InicioPago = $dtPaystub['0']['paystub_ini'];
-			$FinPago = $dtPaystub['0']['paystub_fin'];
-			$ndias = 15;
-		}
-		// Si no hay dato de ultimo paystub solo se validara que la cantidad cargada no supere las 88 horas
-		else{
-            $ndias = 0;
-            $InicioPago = "";
-            $FinPago = "";
-		}
-	}
-
+	
 	//Recorrer todos los registros para guardar las horas trabajadas
 	//Se guardara un registro por empleado
 
@@ -403,79 +370,56 @@ else{
                     $horasPay = $tiempo_trab['0']['tiempo'];
                     $horasNoche = $tiempo_trab['0']['noche'];
                     
-                    //Verifica que exista una fecha de inicio de periodo
-			        if(strlen($InicioPago)>0 and $ndias>0){
-           				//Si exception=0 se registra el payroll, exception=1 se crea solo la exception, exception=2 crea payroll y exception con cantidad de horas de la diferencia.
-                        $exception = 0;
-                        $sqlText = "select ifnull(SEC_TO_TIME(sum(TIME_TO_SEC(payroll_htotal))),'00:00:00') as total ".
-						" from payroll where employee_id=".$employees[$i]['employee_id'].
-                        " and payroll_date between date '".$InicioPago."' and '".$FinPago."'";
-                        $totalPayroll = $dbEx->selSql($sqlText);
-                        $totalHoras = sumarHoras($totalHoras,$totalPayroll['0']['total']);
-                        
-                        //Suma horas de las exception en el periodo
-                        $sqlText = "select SEC_TO_TIME((SUM(TIME_TO_SEC(exceptionemp_hfin))) - (SUM(TIME_TO_SEC(exceptionemp_hini)))) as time_excep ".
-                        "from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id ".
-                        " where ex.employee_id=".$employees[$i]['employee_id'].
-                        " and (exceptionemp_date between date '".$InicioPago."' ".
-                        " and '".$FinPago."') and exceptionemp_approved='A' ".
-                        " and exceptiontp_level=1 group by ex.employee_id";
-
-						$dtEx = $dbEx->selSql($sqlText);
-						$horasException = "00:00:00";
-						if($dbEx->numrows>0 and $dtEx['0']['time_excep'] <> ""){
-							$horasException = $dtEx['0']['time_excep'];
-						}
-						$totalHoras = sumarHoras($totalHoras,$horasException);
-						//Suma horas de AP
-						$sqlText = "select sec_to_time((sum(hours_ap))*60*60) as hap from apxemp where employee_id=".$employees[$i]['employee_id']." and id_tpap in(1,7) ".
-							" and hours_ap!='' and (startdate_ap between date '".$InicioPago."' and '".$FinPago."') and approved_status='A'";
-
-						$horasAp = $dbEx->selSql($sqlText);
-						if($dbEx->numrows>0 and $horasAp['0']['hap'] <> ""){
-							$totalHoras = sumarHoras($totalHoras,$horasAp['0']['hap']);
-						}
-						//Validar si hay horas programadas en el periodo, sino seran 88 por defecto
-						$sqlText = "select time_format(sec_to_time(((SUM(TIME_TO_SEC(sch_departure))) - (SUM(TIME_TO_SEC(sch_entry)))) - ".
+                    //Verifica que horas trabajadas no se mayor a las horas programadas - acciones de personas - excepciones 
+                    //Si exception=0 se registra el payroll, exception=1 se crea solo la exception, exception=2 crea payroll y exception con cantidad de horas de la diferencia.
+                    $sqlText = "select time_format(sec_to_time(((SUM(TIME_TO_SEC(sch_departure))) - (SUM(TIME_TO_SEC(sch_entry)))) - ".
 					 		" ((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - (SUM(ifnull(TIME_TO_SEC(sch_lunchout),0))))),'%H:%i:%s') horas_prog  ".
 							" from schedules ".
 							" where employee_id = ".$employees[$i]['employee_id'].
-							" and sch_date between date '".$InicioPago."' and '".$FinPago."'";
+							" and sch_date = '".$fecha."' ";
 
- 						$HProg = "88:00:00";
+					$HProg = "00:00:00";
+
 						
-						$dtHProg = $dbEx->selSql($sqlText);
-						if($dbEx->numrows > 0 and $dtHProg['0']['horas_prog'] <> ""){
-                            $HProg = $dtHProg['0']['horas_prog'];
-						}
+					$dtHProg = $dbEx->selSql($sqlText);
+					if($dbEx->numrows > 0 and $dtHProg['0']['horas_prog'] <> ""){
+                        $HProg = $dtHProg['0']['horas_prog'];
+					}
 
+					$sqlText = "select SEC_TO_TIME((SUM(TIME_TO_SEC(exceptionemp_hfin))) - (SUM(TIME_TO_SEC(exceptionemp_hini)))) as time_excep ".
+                        "from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id ".
+                        " where ex.employee_id=".$employees[$i]['employee_id'].
+                        " and exceptionemp_date= '".$fecha."' ".
+                        " and exceptionemp_approved='A' ".
+                        " and exceptiontp_level=1 group by ex.employee_id";
+			        
+			        $dtEx = $dbEx->selSql($sqlText);
+					$horasException = "00:00:00";
+					if($dbEx->numrows>0 and $dtEx['0']['time_excep'] <> ""){
+						$horasException = $dtEx['0']['time_excep'];
+						$totalHoras = sumarHoras($totalHoras,$horasException);
+					}
 
-
-	  					//Si las horas totales son mayores a las programadas se ingresa excepcion
-	  					if(restarHoras($HProg,$totalHoras) == "00:00:00"){
-							$exception = 1;
-							$horasExc = $horasPay;
-						}
-						else{
-							$total = sumarHoras($totalHoras,$horasPay);
-                            if($HProg==$total){
-                            	$exception = 0;
-                            }
-                            else if(restarHoras($HProg,$total) == "00:00:00"){
-								$exception = 2;
-								$horasExc = restarHoras($total,$HProg);
-								$horasPay = restarHoras($horasPay, $horasExc);
-							}
-							else{
-								$exception = 0;
-							}
+					$totalHoras = sumarHoras($totalHoras,$horasPay);
+					
+					if($HProg=='00:00:00' and $totalHoras <> '00:00:00'){
+						$exception = 1;
+					}
+					else if ($HProg <> $totalHoras and $totalHoras <> '00:00:00') {
+						$exception = 2;
+						$horasExc = restarHoras($totalHoras,$HProg);
+						$horasPay = restarHoras($horasPay, $horasExc);
+						if($horasExc == '00:00:00'){
+							$exception = 0;
 						}
 					}
 					else{
 						$exception = 0;
 					}
-					//Ingresa el payroll unicamente
 
+
+					//Ingresa el payroll unicamente
+					
 					if($exception ==0){
 						$dia = restarHoras($horasPay, $horasNoche);
 						$noche = $horasNoche;
@@ -496,7 +440,10 @@ else{
 					//Ingresa la exception
 					else if($exception ==1){
 						$sqlText = "insert into exceptionxemp set employee_id=".$employees[$i]['employee_id'].", exceptionemp_date='".$fecha."', ".
-						 "exceptionemp_hini='00:00:00', exceptionemp_hfin='".$horasExc."', exceptiontp_id=9, exceptionemp_comment='exceeds the programmed hours of ".$HProg." hours'";
+						 "exceptionemp_hini='00:00:00', exceptionemp_hfin='".$horasExc."', ".
+						 "exceptiontp_id=9, ".
+						 "exceptionemp_comment='exceeds the programmed hours of ".$HProg." hours' ";
+
 						$dbEx->insSql($sqlText);
 
 						$sqlText = "select payroll_id, payroll_daytime, payroll_nigth from payroll where payroll_date='".$fecha."' and employee_id=".$employees[$i]['employee_id'];
@@ -510,7 +457,9 @@ else{
 					//Ingresa la hora del payroll y la hora de la exception
 					else if($exception == 2){
 						$sqlText = "insert into exceptionxemp set employee_id=".$employees[$i]['employee_id'].", exceptionemp_date='".$fecha."', ".
-						" exceptionemp_hini='00:00:00', exceptionemp_hfin='".$horasExc."', exceptiontp_id=9, exceptionemp_comment='exceeds the programmed hours of ".$HProg." hours'";
+						" exceptionemp_hini='00:00:00', exceptionemp_hfin='".$horasExc."', ".
+						"exceptiontp_id=9, exceptionemp_comment='exceeds the programmed hours of ".$HProg." hours'";
+
 						$dbEx->insSql($sqlText);
 						
 						$dia = restarHoras($horasPay,$horasNoche);
