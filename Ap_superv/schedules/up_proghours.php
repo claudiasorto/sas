@@ -91,7 +91,7 @@ $cantDias = $_POST['lsDias'];
 						//$sqlText = "update schedules set sch_proghrs='".$csv[$i][$j]."' where sch_id=".$dtSch['0']['sch_id'];
 						$sqlText = "update schedules sc set sch_entry = '00:00:00', ".
 						"sch_departure = sec_to_time(time_to_sec('00:00:00') + ".floatval($csv[$i][$j])."*3600 ".
-						" + if(sch_request_id = ".$reqId.",time_to_sec(sch_departure),0) , ".
+						" + if(sch_request_id = ".$reqId.",time_to_sec(sch_departure),0)) , ".
 						" sch_lunchin = null, sch_lunchout = null, ".
 						" sch_break1in = null, sch_break1out = null, sch_break2in = null, sch_break2out = null , sch_request_id = ".$reqId." ".
 						" where sch_id=".$dtSch['0']['sch_id'];
