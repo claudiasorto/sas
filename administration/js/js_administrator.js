@@ -501,3 +501,129 @@ function saveEditAP(id_tpAP){
 		});
 	
 }
+function editAccount(id_account){
+	$.ajax({
+		type: "POST",
+		url: "ajax/ajx_administrator.php",
+		data: "Do=editAccount&id_account="+id_account,
+		success: function(rslt){
+			$("#lyUpdAcc"+id_account).css("display","block");
+			document.getElementById("lyUpdAcc"+id_account).innerHTML = rslt;
+		}
+		});	
+}
+function updateAccount(id_account){
+	name =  $("#txtName").val();
+	descrip =  $("#txtDesc").val();
+	type =  $("#optType").val();
+	status =  $("#optStatus").val();
+
+	if(name.length <= 0){
+		alert("You must enter the name of the account");
+		return false;
+	}
+
+	$.ajax({
+		type: "POST",
+		url: "ajax/ajx_administrator.php",
+		data: "Do=updateAccount&id_account="+id_account+"&name="+name+"&descrip="+descrip+"&type="+type+"&status="+status,
+		success: function(rslt){
+			if(rslt == 1){
+				alert("The account can not be inactivated because it has assigned employees");
+				return false;	
+			}
+			else if (rslt == 2)
+			{
+				alert("Account successfully updated");
+				loadAccount();
+			}
+			else{
+				alert("Error "+rslt);
+			}
+			
+		}
+		});		
+}
+function holidayForm(){
+	$.ajax({
+		type: "POST",
+		url: "ajax/ajx_administrator.php",
+		data: "Do=holidayForm",
+		success: function(rslt){
+			$("#msj").css("display","none");
+			$("#content").css("display","block");
+			document.getElementById("content").innerHTML = rslt;
+		}
+		});	
+}
+function saveHoliday() {
+	name = $("#txtName").val();
+	geo =  $("#lsGeo").val();
+	date =  $("#txtDate").val();
+
+	if(name.length<=0){
+		alert("Enter the name of the holiday");
+		$("#txtName").focus();
+		return false;
+	}
+	if(geo<=0){
+		alert("Enter the country of the holiday");
+		$("#lsGeo").focus();
+		return false;
+	}
+	if(date.length<=0){
+		alert("Enter the date of the holiday");
+		$("#txtDate").focus();
+		return false;
+	}
+
+	$.ajax({
+		type: "POST",
+		url: "ajax/ajx_administrator.php",
+		data: "Do=saveHoliday&geo="+geo+"&date="+date+"&name="+name,
+		success: function(rslt){
+			if (rslt == 0) {
+				alert("Already exist a holiday with the same date and country");
+				return false;
+			}
+			else if(rslt > 0) {
+				searchHoliday(rslt);
+			}
+			else{
+				alert("Execution problem "+rslt);
+				return false;
+			}
+		}
+		});
+
+}
+function searchHoliday(holidayId){
+	if(holidayId == undefined){
+		holidayId = '';
+	}
+
+	name = $("#txtName").val();
+	geo =  $("#lsGeo").val();
+	date =  $("#txtDate").val();
+	$.ajax({
+		type: "POST",
+		url: "ajax/ajx_administrator.php",
+		data: "Do=searchHoliday&geo="+geo+"&date="+date+"&name="+name+"&holidayId="+holidayId,
+		success: function(rslt){
+			$("#lyData").css("display","block");
+			document.getElementById("lyData").innerHTML = rslt;
+		}
+		});
+}
+function delHoliday(holidayId){
+	if(confirm("Are you sure, do you want to delete this record?")){
+		$.ajax({
+			type: "POST",
+			url: "ajax/ajx_administrator.php",
+			data: "Do=delHoliday&holidayId="+holidayId,
+			success: function(rslt){
+				searchHoliday();
+			}
+			});	
+	}
+}

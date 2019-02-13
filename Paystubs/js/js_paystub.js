@@ -940,15 +940,20 @@ function updDiscountForm(DiscountId){
 
 function saveUpdDiscSetup(DiscountId){
     Label = $("#txtLabelUpd"+DiscountId).val();
+    StartDate = $("#start_date"+DiscountId).val();
     EndDate = $("#end_date"+DiscountId).val();
     if(Label.length<=0){
 		alert("Enter label value");
 		return false;
 	}
+	if(StartDate.length<=0){
+		alert("Enter effective start date");
+		return false;
+	}
     $.ajax({
 	type: "POST",
 	url: "ajax/ajx_paystub.php",
-	data: "Do=saveUpdDiscSetup&discountId="+DiscountId+"&label="+Label+"&endDate="+EndDate,
+	data: "Do=saveUpdDiscSetup&discountId="+DiscountId+"&label="+Label+"&startDate="+StartDate+"&endDate="+EndDate,
 	success: function(rslt){
 		if(rslt == 0){
             alert("Cannot be updated because already exist an active discount with the same label or a most recent label created");
@@ -956,6 +961,7 @@ function saveUpdDiscSetup(DiscountId){
 		else if(rslt==2){
 			alert("Configuration updated Successfully");
 			document.getElementById("txtLabelUpd"+DiscountId).innerHTML = "";
+			document.getElementById("start_date"+DiscountId).innerHTML = "";
 			document.getElementById("end_date"+DiscountId).innerHTML = "";
 			$("#lyUpd"+DiscountId).css("display","none");
 			discountSetup();

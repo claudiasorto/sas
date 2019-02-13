@@ -82,6 +82,7 @@ $dbEx = new DBX;
                 <li><a href="#" onClick="loadPosc()">Positions</a></li>
                 <li><a href="#" onClick="loadPlacexDep()">Assign position</a></li>
                 <li><a href="#" onClick="apSetup()">AP Setup</a></li>
+                <li><a href="#" onClick="holidayForm()">Holiday calendar</a></li>
 			</ul>
             
 	</div>

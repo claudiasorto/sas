@@ -161,7 +161,7 @@ $apFun = new APPR;
         <span>Payroll</span>
         <ul>
         	<li><a href="#" onClick="newRegHora()">Time record</a></li>
-            <li><a href="#" onClick="rptPayRoll()">Payroll Report</a></li>
+           <!-- <li><a href="#" onClick="rptPayRoll()">Payroll Report</a></li> -->
             
             <?php 
 			if($_SESSION['usr_rol']=='GERENCIA' or $_SESSION['usr_rol']=='GERENTE DE AREA' or $_SESSION['usr_rol']=='WORKFORCE'){
@@ -170,11 +170,12 @@ $apFun = new APPR;
                 <li><a href="#" onClick="newRegHoraAll()">Time record All Employees </a></li>
              <?php 
 			}
-			if($_SESSION['usr_rol']=='GERENCIA' or $_SESSION['usr_rol']=='WORKFORCE' or $dtPlaza['0']['name_place']=='ACCOUNTING MANAGER' or $_SESSION['usr_rol']=='GERENTE DE AREA'){
-			 ?>
-            	<li><a href="#" onClick="reportPayroll()">Payroll Report All Employees </a></li>
+			/*if($_SESSION['usr_rol']=='GERENCIA' or $_SESSION['usr_rol']=='WORKFORCE' or $dtPlaza['0']['name_place']=='ACCOUNTING MANAGER' or $_SESSION['usr_rol']=='GERENTE DE AREA'){
+			 */
+       ?>
+            	<li><a href="#" onClick="reportPayroll()">Payroll Report </a></li>
             <?php
-			}
+			//}
 			if($_SESSION['usr_rol']=='GERENCIA' or $_SESSION['usr_rol']=='WORKFORCE' or $_SESSION['usr_rol']=='GERENTE DE AREA' or $_SESSION['usr_rol']=='SUPERVISOR' or $_SESSION['usr_rol']=='RECURSOS HUMANOS'){
 			?>
             	<li><a href="#" onClick="newPayroll()">Payroll register</a></li>

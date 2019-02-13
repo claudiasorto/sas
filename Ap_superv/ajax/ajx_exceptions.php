@@ -47,7 +47,7 @@ function zerofill($entero, $largo){
     return $relleno . $entero;
 }
 function DiasFecha($fecha,$dias,$operacion){
-	list($dia, $mes, $anio) = split('/',$fecha);
+	list($dia, $mes, $anio) = explode('/',$fecha);
 	$fecha = $anio.'-'.$mes.'-'.$dia;
   Switch($operacion){
     case "sumar":
@@ -75,12 +75,12 @@ switch($_POST['Do']){
 	case 'newException';
 		$rslt = cargaPag("../exception/formException.php");
 		//Selecciona los tipos de excepciones, si es supervisor le muestra todos los tipos y sino le muestra solo los designados en la base de datos segun el departamento del usuario
-		if($_SESSION['usr_rol']=='SUPERVISOR' or $_SESSION['usr_rol']=='GERENTE DE AREA'){
+		//if($_SESSION['usr_rol']=='SUPERVISOR' or $_SESSION['usr_rol']=='GERENTE DE AREA'){
 			$sqlText = "select exceptiontp_id, exceptiontp_name from exceptions_type where exceptiontp_status=1";
-		}
+		/*}
 		else{
 			$sqlText = "select exceptiontp_id, exceptiontp_name from exceptions_type where exceptiontp_status=1 and (".$_SESSION['usr_depart']." in (exceptiontp_depart))";	
-		}
+		}*/
 		$dtEx = $dbEx->selSql($sqlText);
 		$optEx = '<option value="0">Select a type exception</option>';
 		foreach($dtEx as $dtE){
@@ -177,8 +177,9 @@ switch($_POST['Do']){
 		$horaFin = $_POST['horaFinal'].":".$_POST['minutoFinal'].":00";
 		$fecha = $oFec->cvDtoY($_POST['fecha']);
 		//Verificamos el tipo de exception seleccionada
-		$sqlText = "select exceptiontp_level from exceptions_type where exceptiontp_id=".$_POST['razon'];
+		/*$sqlText = "select exceptiontp_level from exceptions_type where exceptiontp_id=".$_POST['razon'];
 		$nivelExc = $dbEx->selSql($sqlText);
+		
 		if($nivelExc['0']['exceptiontp_level']==1){
 			//Comprueba si ya posee 88 horas, de ser asi cambia la Exception a Hora adicional.
 			$sqlText = "select paystub_id, date_format(paystub_fin,'%d/%m/%Y')as maxFecPay  from paystub where paystub_fin=(select max(paystub_fin) from paystub where paystub_fin<='".$fecha."')";
@@ -307,13 +308,17 @@ switch($_POST['Do']){
 			}
 	
 		} //Fin de comprobacion de tipo de exception de nivel 1
-		else{
+		else{*/
+		$comment = $_POST['comment'];
+		if(strlen($_POST['ticket']>0)){
+				$comment = "Ticket: ".$_POST['ticket']." ".$_POST['comment'];
+		}
+
 		$sqlText = "insert into exceptionxemp set employee_id=".$_POST['empleado'].", exceptionemp_date='".$fecha."', exceptionemp_hini='".$horaIni."', exceptionemp_hfin='".$horaFin."', exceptiontp_id=".$_POST['razon'].", exceptionemp_comment='".$comment."', exceptionemp_creator=".$_SESSION['usr_id'];
 		$dbEx->insSql($sqlText);
-		$sqlText = "select max(exceptionemp_id) as id from exceptionxemp where employee_id=".$_POST['empleado'];
-		$dtEx = $dbEx->selSql($sqlText);
-			$rslt = $dtEx['0']['id'];
-		}
+		$rslt = $dbEx->insertID;
+		
+		//}
 		echo $rslt;
 	break;
 	
@@ -938,7 +943,7 @@ switch($_POST['Do']){
 			" inner join plazaxemp pe on e.employee_id=pe.employee_id ".
 			" inner join placexdep pd on pe.id_placexdep = pd.id_placexdep 
 			".$filtro.
-			" order by exceptionemp_date desc, ex.exceptionemp_id desc";
+			" order by ex.exceptionemp_id desc";
 			$dtEx = $dbEx->selSql($sqlText);
 			$tblExceptions ="";
 			$tblExceptions .='<div id="lyReport"></div>';

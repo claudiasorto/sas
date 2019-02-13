@@ -73,7 +73,22 @@ class SAL{
 		$horasTotal = 0;
 
 		//Obtener el numero de la boleta de pagos
-		$sqlText = "select payxemp_id, payxemp_salarydisc, payxemp_bono, payxemp_aguinaldo, payxemp_severance, payxemp_otherincome ".
+		$sqlText = "select payxemp_id, ".
+					"payxemp_salarydisc, ".
+					"payxemp_bono, ".
+					"payxemp_aguinaldo, ".
+					"payxemp_severance, ".
+					"payxemp_otherincome, ".
+					"((ifnull(attribute1,0)) + (ifnull(attribute11,0)) + ".
+					"(ifnull(attribute2,0)) + (ifnull(attribute12,0)) + ".
+    				"(ifnull(attribute3,0)) + (ifnull(attribute13,0)) + ".
+    				"(ifnull(attribute4,0)) + (ifnull(attribute14,0)) + ".
+   					"(ifnull(attribute5,0)) + (ifnull(attribute15,0)) + ".
+    				"(ifnull(attribute6,0)) + (ifnull(attribute16,0)) + ".
+		    		"(ifnull(attribute7,0)) + (ifnull(attribute17,0)) + ".
+    				"(ifnull(attribute8,0)) + (ifnull(attribute18,0)) + ".
+    				"(ifnull(attribute9,0)) + (ifnull(attribute19,0)) + ".
+	    			"(ifnull(attribute10,0)) + (ifnull(attribute20,0))) DESCUENTOS ".
 					"from paystubxemp ".
 					"where employee_id=".$employee_id.
 					" and paystub_id=".$paystub_id ;
@@ -93,6 +108,7 @@ class SAL{
 			$aguinaldo 	= 0;
 			$indeminizacion = 0;
 			$otherIncome = 0;
+			$descuentos = 0;
 
 		}	
 		else{
@@ -102,17 +118,46 @@ class SAL{
 			$aguinaldo 	= $dtP['0']['payxemp_aguinaldo'];
 			$indeminizacion = $dtP['0']['payxemp_severance'];
 			$otherIncome = $dtP['0']['payxemp_otherincome'];
+			$descuentos = $dtP['0']['DESCUENTOS'];
 		}
 
 
 		//Horas trabajadas
-		$sqlText = "select ifnull(round((sum(TIME_TO_SEC(payroll_daytime)))/3600,2),0) as pt from payroll where employee_id=".$employee_id." and payroll_date between date '".$fechaIni."' and '".$fechaFin."'";
+		$sqlText = "select ( ".
+				"(select ifnull(round((sum(TIME_TO_SEC(payroll_htotal)))/3600,2),0) ".
+				"from payroll ".
+				"where employee_id=".$employee_id." ".
+				"and (payroll_date between date '".$fechaIni."' and '".$fechaFin."') ".
+			    "and payroll_date not in ".
+					"(select holiday ".
+					"from holidays ".
+					"where holiday between date '".$fechaIni."' and '".$fechaFin."')) + ".
+				"(select ifnull(round((((SUM(TIME_TO_SEC(sch_departure))) - ".
+					"(SUM(TIME_TO_SEC(sch_entry)))) - ".
+					"((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - ".
+					"(SUM(ifnull(TIME_TO_SEC(sch_lunchout),0)))))/3600,2),0) holiday ".
+					"from schedules ".
+					"where employee_id = ".$employee_id." ".
+					"and sch_date in ( ".
+						"select holiday ".
+						"from holidays ".
+						"where holiday between date '".$fechaIni."' and '".$fechaFin."')) ".
+			") pt ".
+			"from dual";
+
 		$horasPayroll = $dbEx->selSql($sqlText);
 		if($dbEx->numrows>0){
 			$horasTotal = $horasTotal + $horasPayroll['0']['pt'];
 		}
 		//Horas AP
-		$sqlText = "select sum(hours_ap) as hap from apxemp where employee_id=".$employee_id." and id_tpap in(1,7) and hours_ap!='' and (startdate_ap between date '".$fechaIni."' and '".$fechaFin."') and approved_status='A'";
+		$sqlText = "select sum(hours_ap) as hap ".
+			"from apxemp ap inner join type_ap tp on ap.id_tpap = tp.id_tpap ".
+			"where tp.affects_salary = '+' ".
+			"and has_time = 'Y' and has_start_date = 'Y' ".
+			"and (startdate_ap between date '".$fechaIni."' and '".$fechaFin."') ".
+			"and employee_id= ".$employee_id." ".
+			"and approved_status='A' ";
+
 		$horasAp = $dbEx->selSql($sqlText);
 		if($dbEx->numrows>0){
 			$horasTotal = $horasTotal + $horasAp['0']['hap'];	
@@ -128,18 +173,7 @@ class SAL{
 			$horasException = $dtEx['0']['h_excep'];
 		}
 		$horasTotal = $horasTotal + $horasException;
-		
-		//Horas feriadas
-		//Validar si esto debe ir aca
-		$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_feriada ".
-		" from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$employee_id.
-		" and (exceptionemp_date between date '".$fechaIni."' and '".$fechaFin."') and exceptionemp_approved='A' and ex.exceptiontp_id=5 group by ex.employee_id";
-		$dtHoliday = $dbEx->selSql($sqlText);
-		$horasFeriadas = 0;
-		if($dbEx->numrows>0){
-			$horasFeriadas = $dtHoliday['0']['h_feriada'] * 2;
-		}
-		$horasTotal = $horasTotal + $horasFeriadas;
+
 
 		//Fin de calculo de horas totales 
 
@@ -165,7 +199,6 @@ class SAL{
 		if($dbEx->numrows>0){
 	        if ($dtPr['0']['horas_prog'] <> ""){
 	        		//Horas programadas se multiplican por 2 para sacar el valor de hora por mes, ya que la sumatoria de horas es de una quincena y el salio es base a mes
-	        		//Validar que pasa con el cargue de horas programadas cuando es vacacion
 	                $horasProgram = $dtPr['0']['horas_prog'] * 2;
 			}
 		}
@@ -173,12 +206,28 @@ class SAL{
 		
 		$horasExtrasDia = 0;
 		if($horasTotal > $horasProgram){
-			$horasExtrasDia = $horasTotal - ($horasProgram/2);
+			$horasExtrasDia = $horasTotal - ($horasProgram/2) ;
 		}
 
-		$salario = ($horasTotal-$horasExtrasDia) *($salarioEmp/$horasProgram);
+		$salario = ($horasTotal-$horasExtrasDia) * ($salarioEmp/$horasProgram);
 
-		//Calculo de horas adicionales
+		//Horas feriadas de la configuracion de festivos
+		$sqlText = "select ifnull(round((sum(TIME_TO_SEC(payroll_htotal)))/3600,2),0) h_feriada ".
+			"from payroll ".
+			"where employee_id= ".$employee_id." ".
+			"and (payroll_date between date '".$fechaIni."' and '".$fechaFin."') ".
+		    "and payroll_date in ".
+				"(select holiday ".
+				"from holidays ".
+				"where holiday between date '".$fechaIni."' and '".$fechaFin."')";
+		$dtHoliday = $dbEx->selSql($sqlText);
+		$horasFeriadas = 0;
+		if($dbEx->numrows>0){
+			$horasFeriadas = $dtHoliday['0']['h_feriada'];
+		}
+		$dineroFeriadas = $horasFeriadas*($salarioEmp/$horasProgram);
+
+		//Excepciones de horas adicionales
 		$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_adit ".
 		" from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$employee_id.
 		" and (exceptionemp_date between date '".$fechaIni."' and '".$fechaFin."') and exceptionemp_approved='A' and ex.exceptiontp_id=9 group by ex.employee_id";
@@ -192,8 +241,25 @@ class SAL{
 		//Calculo de horas nocturnas
 		$horasNoct = 0;
 		$dineroNoct = 0;
-		$sqlText = "select ifnull(round((sum(TIME_TO_SEC(payroll_nigth)))/3600,2),0) as pn from payroll where employee_id=".$employee_id.
-		" and (payroll_date between date '".$fechaIni."' and '".$fechaFin."')";
+
+		$sqlText = "select ( ".
+			"(select ifnull(round((sum(TIME_TO_SEC(payroll_nigth)))/3600,2),0) ".
+				"from payroll where employee_id=".$employee_id." ".
+				"and (payroll_date between date '".$fechaIni."' and '".$fechaFin."') ".
+		        "and payroll_date not in ".
+							"(select holiday ".
+							"from holidays ".
+							"where holiday between date '".$fechaIni."' and '".$fechaFin."')) + ".
+			"(select ifnull(round((sum(TIME_TO_SEC(payroll_nigth)))/3600,2),0) ".
+				"from payroll where employee_id=".$employee_id." ".
+				"and (payroll_date between date '".$fechaIni."' and '".$fechaFin."') ".
+		        "and payroll_date in ".
+							"(select holiday ".
+							"from holidays ".
+							"where holiday between date '".$fechaIni."' and '".$fechaFin."')) * 2 ".
+		    ") pn ".
+			"from dual";
+
 		$dtHorasNoc = $dbEx->selSql($sqlText);
 		if($dbEx->numrows>0){
 			$horasNoct = $dtHorasNoc['0']['pn'];
@@ -232,13 +298,48 @@ class SAL{
 			$horasExtrasNoct = $dtExNoct['0']['h_extra_fn'];
 		}
 		$dineroExtraNoct = $horasExtrasNoct * ($salarioEmp/$horasProgram) * 2.5;
+
+		//Excepciones horas feriadas
+		$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_feriada ".
+		" from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$employee_id.
+		" and (exceptionemp_date between date '".$fechaIni."' and '".$fechaFin."') and exceptionemp_approved='A' and ex.exceptiontp_id=5 group by ex.employee_id";
+		$dtExHoliday = $dbEx->selSql($sqlText);
+		$horasExFeriadas = 0;
+		if($dbEx->numrows>0){
+			$horasExFeriadas = $horasExFeriadas + $dtExHoliday['0']['h_feriada'];
+		}
+		$dineroFeriadas = $dineroFeriadas + ($horasExFeriadas * ($salarioEmp/$horasProgram) * 2);
+		$horasFeriadas = $horasFeriadas + $horasExFeriadas;
+
+
 		//calculo de vacacion 
 		$totalVacacion = 0;
-		$sqlText = "select id_apxemp from apxemp where employee_id=".$employee_id." and id_tpap=5 and ".
-			" (startdate_ap between date '".$fechaFin."' and '".$fechaEntrega."') and approved_status='A'";
+
+		$sqlText = "select startdate_ap, enddate_ap ".
+			 "from apxemp ap inner join type_ap tp on ap.id_tpap = tp.id_tpap ".
+			 "where tp.affects_salary = '+' ".
+			 "and has_time = 'N' and has_start_date = 'Y' and has_end_date = 'Y' ".
+			 "and (startdate_ap between date '".$fechaIni."' and '".$fechaFin."') ".
+			 "and employee_id=".$employee_id." ".
+			 "and approved_status='A'";
+
 		$dtVacacion = $dbEx->selSql($sqlText);
 		if($dbEx->numrows>0){
-			$totalVacacion = ($dtsalario['0']['salary']/2)*1.30;	
+			foreach ($dtVacacion as $dtV) {
+				$sqlText = "select round((((SUM(TIME_TO_SEC(sch_departure))) - ".
+					"(SUM(TIME_TO_SEC(sch_entry)))) - ".
+					"((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - ".
+					"(SUM(ifnull(TIME_TO_SEC(sch_lunchout),0)))))/3600,2) horas ".
+					"from schedules ".
+					"where employee_id = ".$employee_id." ".
+					"and sch_date between date '".$dtV['startdate_ap']."' and '".$dtV['enddate_ap']."'";
+
+				$dtHV = $dbEx->selSql($sqlText);
+
+				$totalVacacion = $totalVacacion + ($salarioEmp/$horasProgram) * $dtHV['0']['horas'] * 1.30;	
+
+			}
+			
 		}
 
 		//Calculo del total de ingresos
@@ -252,7 +353,8 @@ class SAL{
 							$bono + 
 							$aguinaldo +
 							$indeminizacion + 
-							$otherIncome;
+							$otherIncome + 
+							$dineroFeriadas;
 
 		//Identificando tipo de plaza
 		$sqlText = "select jt.job_type_name ".
@@ -348,7 +450,7 @@ class SAL{
 		$end = strtotime($fechaFin);
 		$septimo = 0;
 		$nuevaSemana = 0;
-		for($i = $start; $i <=$end; $i +=86400){
+		/*for($i = $start; $i <=$end; $i +=86400){
 			$sqlText = "select absent_id, absent_status from absenteeism where employee_id=".$employee_id." and absent_date='".date('Y-m-d',$i)."' and absent_status='A'";
 			$dtAbsent = $dbEx->selSql($sqlText);
 			if($dbEx->numrows>0){
@@ -370,9 +472,9 @@ class SAL{
 			if($dia=="0"){
 				$nuevaSemana = 0;	
 			}
-		}	//Termina ausentismo
+		}	//Termina ausentismo*/
 
-		$totalRecibir = $totalIngresos - $septimo - $salarydisc - $DescGravados - $DescPostGravamen;
+		$totalRecibir = $totalIngresos - $septimo - $salarydisc - $DescGravados - $DescPostGravamen - $descuentos;
 
 		$sqlText = "update paystubxemp set ";
 		$sqlText .=" payxemp_nhoras= '".$horasTotal."',";
@@ -392,6 +494,8 @@ class SAL{
 		$sqlText .=" payxemp_aguinaldo = '".$aguinaldo."', ";
 		$sqlText .=" payxemp_severance = '".$indeminizacion."', ";
 		$sqlText .=" payxemp_otherincome = '".$otherIncome."', ";
+		$sqlText .=" payxemp_nholiday = '".$horasFeriadas."', " ;
+		$sqlText .=" payxemp_holiday = '".$dineroFeriadas."', " ;
 		$sqlText .=" payxemp_liquid='".$totalRecibir."' ";
 		$sqlText .=" where payxemp_id=".$payxemp_id;
 
@@ -419,6 +523,8 @@ class SAL{
 					"ps.paystub_id, ".
 					"round(payxemp_nhoras,2) as nhoras, ".
 					"round(payxemp_salary,2) as salary, ".
+					"round(payxemp_nholiday,2) as nholiday, ".
+					"round(payxemp_holiday,2) as holiday, ".
 					"round(payxemp_nadditionalhours,2) as naddHours, ".
 					"round(payxemp_additionalhours,2) as addHours, ".
 					"round(payxemp_salarydisc,2) as desc_h, ".
@@ -550,6 +656,7 @@ class SAL{
 							$dtEmp['0']['hours_noct'] + 
 							$dtEmp['0']['salary'] + 
 							$dtEmp['0']['addHours'] +
+							$dtEmp['0']['holiday'] +
 							$incOtherIncome + 
 							$incBono  + 
 							$incVacacion + 
@@ -612,6 +719,9 @@ class SAL{
 			$rslt .='<tr><td>Salario base</td>'.
 					'<td>'.number_format(($dtEmp['0']['nhoras'] + $incNhoras),2).'</td>'.
 					'<td align="right">$'.number_format(($dtEmp['0']['salary'] + $incSalary),2).'</td></tr>';
+			$rslt .='<tr><td>Horas feriadas</td>'.
+					'<td>'.number_format(($dtEmp['0']['nholiday']),2).'</td>'.
+					'<td align="right">$'.number_format(($dtEmp['0']['holiday']),2).'</td></tr>';
 			$rslt .='<tr><td>Horas adicionales</td>'.
 					'<td>'.number_format(($dtEmp['0']['naddHours'] + $incNaddHoras),2).'</td>'.
 					'<td align="right">$'.number_format(($dtEmp['0']['addHours'] + $incAddHoras),2).'</td></tr>';
@@ -670,7 +780,7 @@ class SAL{
 
 						$sqlLabel = "select format(ifnull(".$dtD['disc_attributename'].",0),2) attribute, '".
 							$dtD['disc_label']."' label, ".
-					    	" format(((ifnull(attribute1,0)) + ".
+					    	" format(((ifnull(".$dtD['disc_attributename'].",0)) + ".
 							" ifnull((select ".$dtD['disc_attributename'].
 								" from paystub_incidents ".
 								" where payxemp_id=".$dtEmp['0']['payxemp_id']."),0)),2) total_attr ".

@@ -566,7 +566,7 @@ switch($_POST['Do']){
 	case 'reportPayroll':
 		$rslt = cargaPag("../payroll/filtPayrollRep.php");
 
-		$sqlText = "select * from account order by name_account";
+		$sqlText = "select * from account where account_status='A' order by name_account";
 		$dtC = $dbEx->selSql($sqlText);
 		$optC = "";
 		foreach($dtC as $dtC){
@@ -626,9 +626,6 @@ switch($_POST['Do']){
 		if($_POST['fecIni']!=""){
 			$fec_ini = $oFec->cvDtoY($_POST['fecIni']);
 			$fec_fin = $oFec->cvDtoY($_POST['fecFin']);
-			$filtroPay .= " and payroll_date between date '".$fec_ini."' and date '".$fec_fin."'";
-			$filtroAp .= " and startdate_ap between date '".$fec_ini."' and date '".$fec_fin."'";
-			$filtroExcep .= " and exceptionemp_date between date '".$fec_ini."' and '".$fec_fin."'";
 			}
 		if(isset($_POST['nombre']) && $_POST['nombre']!=''){
 			 $filtro .= " and (e.firstname like '%".strtoupper($_POST['nombre'])."%' or e.lastname like '%".strtoupper($_POST['nombre'])."%')";
@@ -638,28 +635,101 @@ switch($_POST['Do']){
 			}
 			
 		//Si es gerente de area solo le permite a roles de agente y supervisores
-		if($_SESSION['usr_rol']=='GERENTE DE AREA'){
+		/*if($_SESSION['usr_rol']=='GERENTE DE AREA'){
 			$filtro .=" and (name_role='AGENTE' or name_role='SUPERVISOR') ";
-		}	
+		}*/	
 			
-		$sqlText = "select distinct(e.employee_id), e.username, e.firstname, e.lastname from employees e inner join plazaxemp pe on e.employee_id=pe.employee_id inner join placexdep pd on pe.id_placexdep = pd.id_placexdep inner join user_roles u on u.id_role=pd.id_role ".$filtro." order by firstname";
+		$sqlText = "select distinct(e.employee_id), e.username, e.firstname, e.lastname ".
+					"from employees e inner join plazaxemp pe on e.employee_id=pe.employee_id ".
+					"inner join placexdep pd on pe.id_placexdep = pd.id_placexdep ".
+					"inner join user_roles u on u.id_role=pd.id_role ".$filtro." order by firstname";
+
 		$dtEmp = $dbEx->selSql($sqlText);
 		$tblPay = '<table width="925" class="backTablaMain" bordercolor="#069" align="center" cellpadding="2" cellspacing="2">';
 		if($dbEx->numrows>0){
 			$tblPay .='<tr><td colspan="11">Matches: '.$dbEx->numrows.'</td>';
-			$tblPay .='<td colspan="2" align="rigth"><form target="_blank" action="payroll/xls_rptpayroll.php" method="post"><input type="image" src="images/excel.png" alt="Exportar a excel" width="30" style="cursor:pointer" title="Export to excel" />&nbsp;&nbsp;<input type="hidden" name="filtro" value="'.$filtro.'"><input type="hidden" name="filtroPay" value="'.$filtroPay.'"><input type="hidden" name="filtroExcep" value="'.$filtroExcep.'"><input type="hidden" name="filtroAp" value="'.$filtroAp.'"></td></tr>';
+			$tblPay .='<td colspan="2" align="rigth">'.
+				'<form target="_blank" action="payroll/xls_rptpayroll.php" method="post">'.
+				'<input type="image" src="images/excel.png" alt="Exportar a excel" width="30" style="cursor:pointer" title="Export to excel" />&nbsp;&nbsp;'.
+				'<input type="hidden" name="filtro" value="'.$filtro.'">'.
+				'<input type="hidden" name="fec_ini" value="'.$fec_ini.'">'.
+				'<input type="hidden" name="fec_fin" value="'.$fec_fin.'"></td></tr>';
 			$tblPay .='<tr><td colspan="14" align="center" class="txtForm">REPORT OF PAYROLL TO '.$_POST['fecIni'].' THE '.$_POST['fecFin'].'</td></tr>';
 			
-			$tblPay .='<tr class="txtForm"><td width="5%">N&deg;</td><td width="5%">BADGE</td><td width="30%">EMPLOYEE</td>'.
-				'<td width="8%">DAYTIME HOURS</td><td width="8%">NOCTURNAL HOURS</td><td width="8%">AP HOURS</td><td width="8%">VACATIONS</td>'.
-				'<td width="8%">EXCEPTION HOURS</td><td width="8%">ADDITIONAL HOURS</td><td width="8%">PAID HOLIDAY</td>'.
-				'<td width="8%">DAY OVERTIME</td><td width="8%">NIGHT OVERTIME</td><td width="8%">HOLIDAY OVERTIME</td>'.
+			$tblPay .='<tr class="txtForm">'.
+				'<td width="5%">N&deg;</td>'.
+				'<td width="5%">BADGE</td>'.
+				'<td width="30%">EMPLOYEE</td>'.
+				'<td width="8%">DAYTIME HOURS</td>'.
+				'<td width="8%">NOCTURNAL HOURS</td>'.
+				'<td width="8%">AP HOURS</td>'.
+				'<td width="8%">VACATIONS</td>'.
+				'<td width="8%">EXCEPTION HOURS</td>'.
+				'<td width="8%">ADDITIONAL HOURS</td>'.
+				'<td width="8%">HOLIDAY</td>'.
+				'<td width="8%">DAY OVERTIME</td>'.
+				'<td width="8%">NIGHT OVERTIME</td>'.
+				'<td width="8%">HOLIDAY OVERTIME</td>'.
 				'<td width="8%">TOTAL HOURS</td></tr>';
 			$n =1;
 			foreach($dtEmp as $dtE){
 				//Obtiene horas de payroll para el periodo
-				$sqlText = "select (sum(time_to_sec(payroll_htotal)))/3600 as stotal, (sum(time_to_sec(payroll_daytime)))/3600 as sday, (sum(time_to_sec(payroll_nigth)))/3600 as snigth ".
-					"from payroll where employee_id=".$dtE['employee_id']." ".$filtroPay;
+
+				$sqlText = "select (h_total + feriadas) stotal, ".
+					"(h_dia + feriadas) sday, ".
+					"(h_noct + h_noct_feriada) snigth, ".
+					"h_feriada_trab ".
+					"from (select ( ".
+					"(select ifnull(round((sum(TIME_TO_SEC(payroll_htotal)))/3600,2),0) ".
+					"from payroll ".
+				    "where employee_id=".$dtE['employee_id']." ".
+				    "and (payroll_date between date '".$fec_ini."' and '".$fec_fin."') ".
+				    "and payroll_date not in ".
+						"(select holiday ".
+				        "from holidays ".
+				        "where holiday between date '".$fec_ini."' and '".$fec_fin."'))) h_total, ".
+				    "(select ifnull(round((sum(TIME_TO_SEC(payroll_htotal)))/3600,2),0) ".
+					"from payroll ".
+				    "where employee_id= ".$dtE['employee_id']." ".
+				    "and (payroll_date between date '".$fec_ini."' and '".$fec_fin."') ".
+				    "and payroll_date in ".
+						"(select holiday ".
+				        "from holidays ".
+				        "where holiday between date '".$fec_ini."' and '".$fec_fin."')) h_feriada_trab, ".
+					"(select ifnull(round((sum(TIME_TO_SEC(payroll_daytime)))/3600,2),0) ".
+					"from payroll ".
+				    "where employee_id= ".$dtE['employee_id']." ".
+				    "and (payroll_date between date '".$fec_ini."' and '".$fec_fin."') ".
+				    "and payroll_date not in ".
+						"(select holiday ".
+				        "from holidays ".
+				        "where holiday between date '".$fec_ini."' and '".$fec_fin."')) h_dia, ".
+					"(select ifnull(round((sum(TIME_TO_SEC(payroll_nigth)))/3600,2),0) ".
+					"from payroll ".
+				    "where employee_id= ".$dtE['employee_id']." ".   
+				    "and (payroll_date between date '".$fec_ini."' and '".$fec_fin."') ".
+				    "and payroll_date) h_noct, ".
+					"(select ifnull(round((sum(TIME_TO_SEC(payroll_nigth)))/3600,2),0) ".
+					"from payroll ".
+				    "where employee_id= ".$dtE['employee_id']." ".
+				    "and (payroll_date between date '".$fec_ini."' and '".$fec_fin."') ".
+				    "and payroll_date in ".
+						"(select holiday ".  
+				        "from holidays ".
+				        "where holiday between date '".$fec_ini."' and '".$fec_fin."')) h_noct_feriada, ".
+					"((select ifnull(round((((SUM(TIME_TO_SEC(sch_departure))) - ".
+						"(SUM(TIME_TO_SEC(sch_entry)))) - ".
+				        "((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - ".
+				        "(SUM(ifnull(TIME_TO_SEC(sch_lunchout),0)))))/3600,2),0) holiday ".
+				        "from schedules ".
+				        "where employee_id = ".$dtE['employee_id']." ".
+				        "and sch_date in ".
+				        "(select holiday ".   
+							"from holidays ".    
+				            "where holiday between date '".$fec_ini."' and '".$fec_fin."')) ".
+					") feriadas ".
+				    "from dual) a";
+
 				$dtPay = $dbEx->selSql($sqlText);
 				$horasTotal = 0.0;
 				$horasDia = 0.0;
@@ -667,6 +737,12 @@ switch($_POST['Do']){
 				$horasAp = 0.0;
 				$horasVacacion = 0.0;
 				$horasException = 0.0;
+				$horasAdicionales = 0.0;
+				$horasPaidHoliday = 0.0;
+				$horasDayOvertime = 0.0;
+				$horasNightOvertime = 0.0;
+				$horasHolidayOvertime = 0.0;;
+
 				if($dbEx->numrows>0){
 					$horasTotal = $dtPay['0']['stotal'];
 					$horasDia = $dtPay['0']['sday'];
@@ -674,133 +750,159 @@ switch($_POST['Do']){
 				}
 				//Obtiene horas de las AP en el periodo dado
 
-				$sqlText = "select id_apxemp, hours_ap from apxemp where employee_id=".$dtE['employee_id']." and id_tpap in(1,7) and hours_ap!='' ".$filtroAp;
+				$sqlText = "select sum(hours_ap) as hap ".
+					"from apxemp ap inner join type_ap tp on ap.id_tpap = tp.id_tpap ".
+					"where tp.affects_salary = '+' ".
+					"and has_time = 'Y' and has_start_date = 'Y' ".
+					"and (startdate_ap between date '".$fec_ini."' and '".$fec_fin."') ".
+					"and employee_id= ".$dtE['employee_id']." ".
+					"and approved_status='A' ";
+
 				$dtAp = $dbEx->selSql($sqlText);
 				if($dbEx->numrows>0){
-					foreach($dtAp as $dtA){
-						$flag = verificarAprobAp($dtA['id_apxemp']);
-						if($flag==1){
-							$horasAp = $horasAp + $dtA['hours_ap'];
-						}	
-					}
+					$horasAp = $horasAp + $dtA['hap'];
 				}
 				
 				//Obtiene horas de vacaciones
-				$sqlText = "select id_apxemp, hours_ap from apxemp where employee_id=".$dtE['employee_id']." and id_tpap in(5) and hours_ap!='' ".$filtroAp;
-				$dtVac = $dbEx->selSql($sqlText);
+				$sqlText = "select startdate_ap, enddate_ap ".
+					 "from apxemp ap inner join type_ap tp on ap.id_tpap = tp.id_tpap ".
+					 "where tp.affects_salary = '+' ".
+					 "and has_time = 'N' and has_start_date = 'Y' and has_end_date = 'Y' ".
+					 "and (startdate_ap between date '".$fec_ini."' and '".$fec_fin."') ".
+					 "and employee_id=".$dtE['employee_id']." ".
+					 "and approved_status='A'";
+
+				$dtVacacion = $dbEx->selSql($sqlText);
 				if($dbEx->numrows>0){
-					foreach($dtVac as $dtV){
-						$flag = verificarAprobAp($dtV['id_apxemp']);
-						if($flag==1){
-							$horasVacacion = $horasVacacion + $dtV['hours_ap'];
-						}
+					foreach ($dtVacacion as $dtV) {
+						$sqlText = "select round((((SUM(TIME_TO_SEC(sch_departure))) - ".
+							"(SUM(TIME_TO_SEC(sch_entry)))) - ".
+							"((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - ".
+							"(SUM(ifnull(TIME_TO_SEC(sch_lunchout),0)))))/3600,2) horas ".
+							"from schedules ".
+							"where employee_id = ".$dtE['employee_id']." ".
+							"and sch_date between date '".$dtV['startdate_ap']."' and '".$dtV['enddate_ap']."'";
+
+						$dtHV = $dbEx->selSql($sqlText);
+
+						$horasVacacion = $horasVacacion + $dtHV['0']['horas'];	
+
 					}
+					
 				}
-				
+							
 				//Obtine horas de las exceptions en el periodo dado
-				$sqlText = "select sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$dtE['employee_id']." ".$filtroExcep." and exceptionemp_approved='A' and exceptiontp_level=1 group by ex.employee_id";
+				$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) - ".
+					"(SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_excep ".
+		 			"from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id ".
+		 			"where ex.employee_id=".$dtE['employee_id']." ".
+		 			"and (exceptionemp_date between date '".$fec_ini."' ".
+		 			"and '".$fec_fin."') and exceptionemp_approved='A' ".
+		 			"and exceptiontp_level=1 group by ex.employee_id";
+
 				$dtEx = $dbEx->selSql($sqlText);
-				$horasException = "0.0";
 				if($dbEx->numrows>0){
-					$horas = $dtEx['0']['hora']; 
-					$min = $dtEx['0']['minutos']; 
-					$minutos = $min%60; 
-					$minutos = round($minutos/60,2);
-					$formatMinutos = explode(".",$minutos);
-					$h=0; 
-					$h=(int)($min/60); 
-					$horas+=$h;
-					$horasException = $horas.".".$formatMinutos[1];
+					$horasException = $dtEx['0']['h_excep'];
 					
 				}
 				//Obtiene las horas de adicionales
-				$sqlText = "select sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$dtE['employee_id']." ".$filtroExcep." and exceptionemp_approved='A' and exceptiontp_level=2 and et.exceptiontp_id=9 group by ex.employee_id";
+				$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) ".
+					" - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_adit ".
+					"from exceptionxemp ex inner join exceptions_type et on ".
+					"et.exceptiontp_id=ex.exceptiontp_id ".
+					"where ex.employee_id=".$dtE['employee_id']." ".
+					"and (exceptionemp_date between date '".$fec_ini."' and '".$fec_fin."') ".
+					"and exceptionemp_approved='A' and ex.exceptiontp_id=9 group by ex.employee_id";
+		
 				$dtAh = $dbEx->selSql($sqlText);
-				$additionalHours ="0.0";
 				if($dbEx->numrows){
-					$horasAh = $dtAh['0']['hora']; 
-					$minAh = $dtAh['0']['minutos']; 
-					$minutosAh = $minAh%60; 
-					$minutosAh = round($minutosAh/60,2);
-					$formatMinutosAh = explode(".",$minutosAh);
-					$h=0; 
-					$h=(int)($minAh/60); 
-					$horasAh+=$h;
-					$additionalHours = $horasAh.".".$formatMinutosAh[1];	
+					$horasAdicionales = $dtAh['0']['h_adit'];
 				}
 				
-				//Obtiene las horas de PAID HOLIDAY
-				$sqlText = "select sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$dtE['employee_id']." ".$filtroExcep." and exceptionemp_approved='A' and exceptiontp_level=2 and et.exceptiontp_id=5 group by ex.employee_id";
-				$dtPh = $dbEx->selSql($sqlText);
-				$horasPaidHoliday ="0.0";
+				//Obtiene las horas feriadas
+				$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) ".
+					" - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_excep ".
+					"from exceptionxemp ex inner join exceptions_type et on ".
+					"et.exceptiontp_id=ex.exceptiontp_id ".
+					"where ex.employee_id=".$dtE['employee_id']." ".
+					"and (exceptionemp_date between date '".$fec_ini."' and '".$fec_fin."') ".
+					"and exceptionemp_approved='A' and ex.exceptiontp_id=5 group by ex.employee_id";
+		
+				$dtEx = $dbEx->selSql($sqlText);
+				$horasPaidHoliday = $dtPay['0']['h_feriada_trab'];
 				if($dbEx->numrows){
-					$horasPh = $dtPh['0']['hora']; 
-					$minPh = $dtPh['0']['minutos']; 
-					$minutosPh = $minPh%60; 
-					$minutosPh = round($minutosPh/60,2);
-					$formatMinutosPh = explode(".",$minutosPh);
-					$h=0; 
-					$h=(int)($minPh/60); 
-					$horasPh+=$h;
-					$horasPaidHoliday = $horasPh.".".$formatMinutosPh[1];	
+					$horasPaidHoliday = $horasPaidHoliday + $dtEx['0']['h_excep'];
 				}
-				//Obtine las horas de Day overtime
-				$sqlText = "select sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$dtE['employee_id']." ".$filtroExcep." and exceptionemp_approved='A' and exceptiontp_level=2 and et.exceptiontp_id=6 group by ex.employee_id";
-				$dtDo = $dbEx->selSql($sqlText);
-				$horasDayOvertime ="0.0";
+
+				//Obtiene las horas extras
+				$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) ".
+					" - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_excep ".
+					"from exceptionxemp ex inner join exceptions_type et on ".
+					"et.exceptiontp_id=ex.exceptiontp_id ".
+					"where ex.employee_id=".$dtE['employee_id']." ".
+					"and (exceptionemp_date between date '".$fec_ini."' and '".$fec_fin."') ".
+					"and exceptionemp_approved='A' and ex.exceptiontp_id=6 group by ex.employee_id";
+		
+				$dtEx = $dbEx->selSql($sqlText);
 				if($dbEx->numrows){
-					$horasDo = $dtDo['0']['hora']; 
-					$minDo = $dtDo['0']['minutos']; 
-					$minutosDo = $minDo%60; 
-					$minutosDo = round($minutosDo/60,2);
-					$formatMinutosDo = explode(".",$minutosDo);
-					$h=0; 
-					$h=(int)($minDo/60); 
-					$horasDo+=$h;
-					$horasDayOvertime = $horasDo.".".$formatMinutosDo[1];	
+					$horasDayOvertime = $dtEx['0']['h_excep'];
 				}
-				//Obtine las horas de Night overtime
-				$sqlText = "select sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$dtE['employee_id']." ".$filtroExcep." and exceptionemp_approved='A' and exceptiontp_level=2 and et.exceptiontp_id=7 group by ex.employee_id";
-				$dtNo = $dbEx->selSql($sqlText);
-				$horasNightOvertime ="0.0";
+
+				//Obtiene las horas nocturnas
+				$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) ".
+					" - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_excep ".
+					"from exceptionxemp ex inner join exceptions_type et on ".
+					"et.exceptiontp_id=ex.exceptiontp_id ".
+					"where ex.employee_id=".$dtE['employee_id']." ".
+					"and (exceptionemp_date between date '".$fec_ini."' and '".$fec_fin."') ".
+					"and exceptionemp_approved='A' and ex.exceptiontp_id=7 group by ex.employee_id";
+		
+				$dtEx = $dbEx->selSql($sqlText);
 				if($dbEx->numrows){
-					$horasNo = $dtNo['0']['hora']; 
-					$minNo = $dtNo['0']['minutos']; 
-					$minutosNo = $minNo%60; 
-					$minutosNo = round($minutosNo/60,2);
-					$formatMinutosNo = explode(".",$minutosNo);
-					$h=0; 
-					$h=(int)($minNo/60); 
-					$horasNo+=$h;
-					$horasNightOvertime = $horasNo.".".$formatMinutosNo[1];	
+					$horasNightOvertime = $dtEx['0']['h_excep'];
 				}
-				//Obtine las horas de Holiday overtime
-				$sqlText = "select sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join exceptions_type et on et.exceptiontp_id=ex.exceptiontp_id where ex.employee_id=".$dtE['employee_id']." ".$filtroExcep." and exceptionemp_approved='A' and exceptiontp_level=2 and et.exceptiontp_id=8 group by ex.employee_id";
-				$dtHo = $dbEx->selSql($sqlText);
-				$horasHolidayOvertime ="0.0";
+
+				//Obtiene horas extas feriadas 
+				$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) ".
+					" - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_excep ".
+					"from exceptionxemp ex inner join exceptions_type et on ".
+					"et.exceptiontp_id=ex.exceptiontp_id ".
+					"where ex.employee_id=".$dtE['employee_id']." ".
+					"and (exceptionemp_date between date '".$fec_ini."' and '".$fec_fin."') ".
+					"and exceptionemp_approved='A' and ex.exceptiontp_id=8 group by ex.employee_id";
+		
+				$dtEx = $dbEx->selSql($sqlText);
 				if($dbEx->numrows){
-					$horasHo = $dtHo['0']['hora']; 
-					$minHo = $dtHo['0']['minutos']; 
-					$minutosHo = $minHo%60; 
-					$minutosHo = round($minutosHo/60,2);
-					$formatMinutosHo = explode(".",$minutosHo);
-					$h=0; 
-					$h=(int)($minHo/60); 
-					$horasHo+=$h;
-					$horasHolidayOvertime = $horasHo.".".$formatMinutosHo[1];	
-				}
+					$horasHolidayOvertime = $dtEx['0']['h_excep'];
+				}				
+
 				
 				//Suma la planilla con las demas horas
-				$horasTotal = $horasTotal + $horasAp + $horasVacacion + $horasException + $horasPaidHoliday;
-
-				//$horasTotal = $horasTotal + $horasAp + $horasException + $horasPaidHoliday + $horasDayOvertime + $horasNightOvertime + $horasHolidayOvertime;
+				$horasTotal = $horasTotal 
+						+ $horasAp 
+						+ $horasVacacion 
+						+ $horasException 
+						+ $horasAdicionales
+						+ $horasPaidHoliday
+						+ $horasDayOvertime
+						+ $horasNightOvertime
+						+ $horasHolidayOvertime;
 				
 				
-				$tblPay .= '<tr><td>'.$n.'</td><td>'.$dtE['username'].'</td><td>'.$dtE['firstname'].' '.$dtE['lastname'].'</td>'.
-					'<td>'.round($horasDia,2).'</td><td>'.round($horasNocturna,2).'</td><td>'.round($horasAp,2).'</td><td>'.round($horasVacacion,2).'</td>'.
-					'<td>'.round($horasException,2).'</td><td>'.round($additionalHours,2).'</td><td>'.round($horasPaidHoliday,2).'</td>'.
-					'<td>'.round($horasDayOvertime,2).'</td><td>'.round($horasNightOvertime,2).'</td><td>'.round($horasHolidayOvertime,2).'</td>'.
-					'<td>'.round($horasTotal,2).'</td></tr>';
+				$tblPay .= '<tr><td>'.$n.'</td>'.
+						'<td>'.$dtE['username'].'</td>'.
+						'<td>'.$dtE['firstname'].' '.$dtE['lastname'].'</td>'.
+						'<td>'.round($horasDia,2).'</td>'.
+						'<td>'.round($horasNocturna,2).'</td>'.
+						'<td>'.round($horasAp,2).'</td>'.
+						'<td>'.round($horasVacacion,2).'</td>'.
+						'<td>'.round($horasException,2).'</td>'.
+						'<td>'.round($horasAdicionales,2).'</td>'.
+						'<td>'.round($horasPaidHoliday,2).'</td>'.
+						'<td>'.round($horasDayOvertime,2).'</td>'.
+						'<td>'.round($horasNightOvertime,2).'</td>'.
+						'<td>'.round($horasHolidayOvertime,2).'</td>'.
+						'<td>'.round($horasTotal,2).'</td></tr>';
 				$n = $n+1;
 			}
 		}

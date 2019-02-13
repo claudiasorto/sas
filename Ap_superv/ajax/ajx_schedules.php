@@ -517,7 +517,7 @@ switch($_POST['Do']){
 			}
 			
 			//Obtiene las cuentas
-			$sqlText = "select * from account where id_typeacc=2 order by name_account ";
+			$sqlText = "select * from account where id_typeacc=2 and account_status='A' order by name_account ";
 			$dtCuenta = $dbEx->selSql($sqlText);
 			$optCuenta = "";
 			if($dbEx->numrows>0){
@@ -1037,7 +1037,7 @@ switch($_POST['Do']){
 			}
 			
 			//Obtiene las cuentas
-			$sqlText = "select * from account where id_typeacc=2 order by name_account ";
+			$sqlText = "select * from account where id_typeacc=2 and account_status='A' order by name_account ";
 			$dtCuenta = $dbEx->selSql($sqlText);
 			$optCuenta = "";
 			if($dbEx->numrows>0){
@@ -1160,7 +1160,7 @@ switch($_POST['Do']){
 			}
 			
 			//Obtiene las cuentas
-			$sqlText = "select * from account where id_typeacc=2 order by name_account ";
+			$sqlText = "select * from account where id_typeacc=2 and account_status='A' order by name_account ";
 			$dtCuenta = $dbEx->selSql($sqlText);
 			$optCuenta = "";
 			if($dbEx->numrows>0){

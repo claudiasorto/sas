@@ -219,7 +219,7 @@ switch($_POST['Do']){
 				}
 				
 				
-				$totalIncome = $dtP['PAYXEMP_OTHERINCOME'] + $dtP['PAYXEMP_BONO'] + $dtP['PAYXEMP_VACATION'] + $dtP['PAYXEMP_AGUINALDO'] + $dtP['PAYXEMP_OTNOCT'] + $dtP['PAYXEMP_OTDIURNAL'] + $dtP['PAYXEMP_HORASNOCT'] + $dtP['PAYXEMP_SALARY'] + $dtP['PAYXEMP_ADDITIONALHOURS'] + $dtP['PAYXEMP_SEVERANCE'];;
+				$totalIncome = $dtP['PAYXEMP_OTHERINCOME'] + $dtP['PAYXEMP_BONO'] + $dtP['PAYXEMP_VACATION'] + $dtP['PAYXEMP_AGUINALDO'] + $dtP['PAYXEMP_OTNOCT'] + $dtP['PAYXEMP_OTDIURNAL'] + $dtP['PAYXEMP_HORASNOCT'] + $dtP['PAYXEMP_SALARY'] + $dtP['PAYXEMP_ADDITIONALHOURS'] + $dtP['PAYXEMP_SEVERANCE'] + $dtP['PAYXEMP_HOLIDAY'];
 				
 				//Obtener total de deducciones 
 				$sqlText = "select sum(amount) totalDeducciones from paystub_legaldisc where payxemp_id = ".$dtP['PAYXEMP_ID'];
@@ -454,7 +454,7 @@ switch($_POST['Do']){
 					$attrInc = number_format($attrInc,2);
 
 					$sqlLabel = "select format(ifnull(".$dtD['disc_attributename'].",0),2) attribute, '".$dtD['disc_label']."' label, ".
-					    " format(((ifnull(attribute1,0)) + ".
+					    " format(((ifnull(".$dtD['disc_attributename'].",0)) + ".
 						" ifnull((select ".$dtD['disc_attributename']." from paystub_incidents where payxemp_id=".$dtPay['0']['PAYXEMP_ID']."),0)),2) total_attr ".
 						"from paystubxemp where employee_id=".$idEmp." and paystub_id=".$_POST['idPay'];
 						
@@ -846,7 +846,7 @@ switch($_POST['Do']){
 	 				}
 
 					$sqlLabel = "select format(ifnull(".$dtD['disc_attributename'].",0),2) attribute, '".$dtD['disc_label']."' label, ".
-					    " format(((ifnull(attribute1,0)) + ".
+					    " format(((ifnull(".$dtD['disc_attributename'].",0)) + ".
 						" ifnull((select ".$dtD['disc_attributename']." from paystub_incidents where payxemp_id=".$dtPay['0']['PAYXEMP_ID']."),0)),2) total_attr ".
 						"from paystubxemp where employee_id=".$dtPay['0']['EMPLOYEE_ID']." and paystub_id=".$dtPay['0']['PAYSTUB_ID'];
 
@@ -1610,10 +1610,14 @@ switch($_POST['Do']){
 	break;
 	
 	case 'updDiscountForm':
-		$sqlText = "select disc_label, date_format(disc_end_date,'%d/%m/%Y')disc_end_date from pay_discount_setup where disc_id = ".$_POST['discountId'];
+		$sqlText = "select disc_label, date_format(disc_start_date,'%d/%m/%Y') disc_start_date, ".
+			" date_format(disc_end_date,'%d/%m/%Y') disc_end_date ".
+			" from pay_discount_setup where disc_id = ".$_POST['discountId'];
 		$dtDisc = $dbEx->selSql($sqlText);
 		
   		$rslt = 'Label: <input type="text" class="txtPag" id="txtLabelUpd'.$_POST['discountId'].'" value="'.$dtDisc['0']['disc_label'].'">'.
+  		  ' Start Date: <input type="text" class="txtPag" name="start_date'.$_POST['discountId'].'" id="start_date'.$_POST['discountId'].'" '.
+		  'value="'.$dtDisc['0']['disc_start_date'].'" size="15" class="txtPag" /><img src="images/calendar.jpg" align="center" onclick="return showCalendar('."'".'start_date'.$_POST['discountId'].''."'".', '."'".'%d/%m/%Y'."'".');" style="cursor:pointer;" /> '.
 		  ' End Date: <input type="text" class="txtPag" name="end_date'.$_POST['discountId'].'" id="end_date'.$_POST['discountId'].'" '.
 		  'value="'.$dtDisc['0']['disc_end_date'].'" size="15" class="txtPag" /><img src="images/calendar.jpg" align="center" onclick="return showCalendar('."'".'end_date'.$_POST['discountId'].''."'".', '."'".'%d/%m/%Y'."'".');" style="cursor:pointer;" /> '.
 		  '<input type="button" onclick="saveUpdDiscSetup('.$_POST['discountId'].')" value="Save update">';
@@ -1622,6 +1626,7 @@ switch($_POST['Do']){
 	break;
 	
 	case 'saveUpdDiscSetup':
+		$fechaIni = "'".$oFec->cvDtoY($_POST['startDate'])."'";
 
 		if(strlen($_POST['endDate']) > 0){
 			$fecha = "'".$oFec->cvDtoY($_POST['endDate'])."'";
@@ -1629,14 +1634,6 @@ switch($_POST['Do']){
 		else{
 			$fecha = "null";
 		}
-			
-		/*$sqlText =	"select count(1) c ".
-			" from pay_discount_setup a ".
-			" where a.disc_id <> ".$_POST['discountId'].
-			" and ((a.disc_label = '".$_POST['label']."'".
-			" and ifnull(a.disc_end_date,sysdate() + 1) > sysdate()) ".
-			" or (exists (select * ".
-			" from pay_discount_setup b where b.disc_attributeid = a.disc_attributeid and b.disc_start_date > a.disc_start_date )))";  */
 
 		$sqlText = "select count(ds.disc_id) c".
 			" from pay_discount_setup ds ".
@@ -1656,7 +1653,10 @@ switch($_POST['Do']){
 			$rslt = 0;
 		}
 		else{
-			$sqlText = "update pay_discount_setup set disc_label = '".$_POST[label]."' , disc_end_date = ".$fecha." ".
+			$sqlText = "update pay_discount_setup ".
+				"set disc_label = '".$_POST[label]."' ,".
+				" disc_start_date = ".$fechaIni.", ".
+				" disc_end_date = ".$fecha." ".
 				"where disc_id = ".$_POST['discountId'];
 			$dbEx->updSql($sqlText);
 			$rows = $dbEx->affectedRows;

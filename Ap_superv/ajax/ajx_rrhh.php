@@ -272,7 +272,7 @@ switch($_POST['Do']){
 		//Funciones para traslados si el usuario no es de RRHH
 		if($_SESSION['usr_rol']!='RECURSOS HUMANOS'){
 
-			$sqlText = "select ac.name_account, ac.id_account from account ac order by NAME_ACCOUNT";
+			$sqlText = "select ac.name_account, ac.id_account from account ac where account_status='A' order by NAME_ACCOUNT";
 			
 			$dtC = $dbEx->selSql($sqlText);
 			$lscuenta = '<select id="lsCuenta" class="txtPag" onChange="getDepartTras(this.value)">';
@@ -296,7 +296,7 @@ switch($_POST['Do']){
 		}
 		//Funciones para traslado si el usuario es de Recursos humanos
 		if($_SESSION['usr_rol']=='RECURSOS HUMANOS'){
-			$sqlText = "select * from account order by NAME_ACCOUNT";
+			$sqlText = "select * from account where account_status='A' order by NAME_ACCOUNT";
 			$dtC = $dbEx->selSql($sqlText);
 			$optC = '<select id="lsCuenta" class="txtPag" onChange="getDepart(this.value)">';
 			$optC .='<option value="0">Seleccione una cuenta</option>';
@@ -340,7 +340,7 @@ switch($_POST['Do']){
 		$rslt = str_replace("<!--optCenter-->",$optC,$rslt);
 		
 		//Datos para ap de nuevo puesto
-		$sqlText = "select * from account order by name_account";
+		$sqlText = "select * from account where account_status='A' order by name_account";
 		$dtAccount = $dbEx->selSql($sqlText);
 		$optCuentaPuesto = '<select id="lsCuenta" class="txtPag" onChange="getDepart(this.value)">';
 		foreach($dtAccount as $dtAc){
@@ -1683,7 +1683,7 @@ switch($_POST['Do']){
 			}
 			
 				//Cuentas para poder actualizar nuevos puestos
-			$sqlText = "select * from account order by name_account";
+			$sqlText = "select * from account where account_status='A' order by name_account";
 			$dtAccount = $dbEx->selSql($sqlText);
 			$optCuentaPuesto = '<select id="lsCuenta" class="txtPag" onChange="getDepart(this.value)">';
 			foreach($dtAccount as $dtAc){
@@ -1958,7 +1958,7 @@ switch($_POST['Do']){
 		}//Terminan filtros si el rol del usuario es supervisor
 		
 		if($_SESSION['usr_rol']!='SUPERVISOR' and $_SESSION['usr_rol']!='RECURSOS HUMANOS'){
-			$sqlText = "select id_account, name_account from account order by name_account";
+			$sqlText = "select id_account, name_account from account where account_status='A' order by name_account";
 			$dtC = $dbEx->selSql($sqlText);
 			//filtros cuenta
 			$selCuenta = '<select id="lsCuenta" class="txtPag" onChange="getDepartFiltros(this.value)"><option value="0">[TODOS]</option>';
@@ -1989,7 +1989,7 @@ switch($_POST['Do']){
 		}
 		
 		if($_SESSION['usr_rol']=='RECURSOS HUMANOS'){
-			$sqlText = "select id_account, name_account from account order by name_account";
+			$sqlText = "select id_account, name_account from account where account_status='A' order by name_account";
 
 			$dtC = $dbEx->selSql($sqlText);
 			$selCuenta = '<select id="lsCuenta" class="txtPag" onChange="getDepartFiltros(this.value)"><option value="0">[TODOS]</option>';
@@ -2134,10 +2134,10 @@ switch($_POST['Do']){
 			$filtro .= " and (ap.autor_ap=".$_SESSION['usr_id']." or pd.id_role<".$_SESSION['usr_idrol'].")";
 
 		}
-		if($_SESSION['usr_rol']=='RECURSOS HUMANOS'){
+		/*if($_SESSION['usr_rol']=='RECURSOS HUMANOS'){
 			$filtro .= " and e.employee_id!=".$_SESSION['usr_sup'];	
 			$filtroInact .= " and 1 = 2 ";
-		}
+		} */
 		if($_POST['cuenta']>0){
 			$filtro .= " and pd.id_account=".$_POST['cuenta'];
 			$filtroInact .= " and 1 = 2 ";
@@ -2158,8 +2158,8 @@ switch($_POST['Do']){
 			if(strlen($_POST['fec_fin'])>0){
 			   	$fec_ini = $oFec->cvDtoY($_POST['fec_ini']);
 			    $fec_fin = $oFec->cvDtoY($_POST['fec_fin']);
-				$filtro .= " and ap.storagedate_ap between date '".$fec_ini."' and date '".$fec_fin."'";
-				$filtroInact .= " and ap.storagedate_ap between date '".$fec_ini."' and date '".$fec_fin."'";
+				$filtro .= " and ap.startdate_ap between date '".$fec_ini."' and date '".$fec_fin."'";
+				$filtroInact .= " and ap.startdate_ap between date '".$fec_ini."' and date '".$fec_fin."'";
 			}
 		}
 		if(isset($_POST['emp']) && $_POST['emp']!=''){
@@ -2180,6 +2180,11 @@ switch($_POST['Do']){
 			else if($_POST['estado']==3){
 				$estado = 3;
 			}
+		}
+
+		if((strlen($_POST['numAp'])) > 0){
+			$filtro .= " and ap.id_apxemp = ".$_POST['numAp']." ";
+			$filtroInact .= " and ap.id_apxemp = ".$_POST['numAp']." ";
 		}
 
 		$sqlText = "select ap.id_apxemp, e.employee_id, e.username, e.firstname, e.lastname, tp.id_tpap, tp.name_tpap, ".
@@ -2266,7 +2271,7 @@ switch($_POST['Do']){
 			
 			$rslt .= '<tr><td colspan="7">No hay coincidencias para los filtros seleccionados</td></tr></table>';	}
 
-	echo $rslt;
+		echo $rslt;
 	break;
 	
 	case 'autorizarap': //Muestra ap por autorizar segun el rol del usuario
@@ -2520,7 +2525,7 @@ switch($_POST['Do']){
 		$rslt = str_replace("<!--idplxemp-->",$dtE['0']['id_plxemp'],$rslt);
 		
 		
-		$sqlText = "select * from account where id_typeacc=2 order by name_account";
+		$sqlText = "select * from account where id_typeacc=2 and account_status='A' order by name_account";
 			$dtC = $dbEx->selSql($sqlText);
 			$optC = '<select id="lsCuenta" class="txtPag" onChange="getDepart(this.value)">';
 			foreach($dtC as $dtCu){

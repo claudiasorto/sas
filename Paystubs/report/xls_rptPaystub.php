@@ -56,6 +56,8 @@
  <td><font color="#FFFFFF">HORAS PROGRAMADAS</font></td>
  <td><font color="#FFFFFF">HORAS TRABAJADAS</font></td>
  <td><font color="#FFFFFF">SALARIO</font></td>
+ <td><font color="#FFFFFF">FERIADOS</font></td>
+ <td><font color="#FFFFFF">$ FERIADOS</font></td>
  <td><font color="#FFFFFF">HORAS ADICIONALES</font></td>
  <td><font color="#FFFFFF">$ HORAS ADICIONALES</font></td>
  <td><font color="#FFFFFF">HORAS NOCTURNAS</font></td>
@@ -160,7 +162,7 @@
 			$incTotalIngresos = $incOtherIncome + $incBono + $incVacacion + $incAguinaldo + $incOtnoct + $incOtdia + $incHnoct + $incSalary + $incAddHoras + $incSeverance;
 			
 		
-		$totalIncome = $dtP['PAYXEMP_OTHERINCOME'] + $dtP['PAYXEMP_BONO'] + $dtP['PAYXEMP_VACATION'] + $dtP['PAYXEMP_AGUINALDO'] + $dtP['PAYXEMP_OTNOCT'] + $dtP['PAYXEMP_OTDIURNAL'] + $dtP['PAYXEMP_HORASNOCT'] + $dtP['PAYXEMP_SALARY'] + $dtP['PAYXEMP_ADDITIONALHOURS'] + $dtP['PAYXEMP_SEVERANCE'];
+		$totalIncome = $dtP['PAYXEMP_OTHERINCOME'] + $dtP['PAYXEMP_BONO'] + $dtP['PAYXEMP_VACATION'] + $dtP['PAYXEMP_AGUINALDO'] + $dtP['PAYXEMP_OTNOCT'] + $dtP['PAYXEMP_OTDIURNAL'] + $dtP['PAYXEMP_HORASNOCT'] + $dtP['PAYXEMP_SALARY'] + $dtP['PAYXEMP_ADDITIONALHOURS'] + $dtP['PAYXEMP_SEVERANCE'] + $dtP['PAYXEMP_HOLIDAY'];
 
 		//Deducciones
 		$sqlText = "select round(ifnull(sum(amount),0),2) deducciones from paystub_legaldisc where payxemp_id = ".$dtP['PAYXEMP_ID'];
@@ -199,7 +201,7 @@
 		$tblDisc = '';
 
 		foreach($dtDisc as $dtD){
-			$sqlAttr = "select format(((ifnull(attribute1,0)) + ".
+			$sqlAttr = "select format(((ifnull(".$dtD['disc_attributename'].",0)) + ".
 						" ifnull((select ".$dtD['disc_attributename']." from paystub_incidents where payxemp_id=".$dtP['PAYXEMP_ID']."),0)),2) total_attr ".
 						" from paystubxemp where payxemp_id=".$dtP['PAYXEMP_ID'];
             $dtAttr = $dbEx->selSql($sqlAttr);
@@ -219,6 +221,8 @@
         <td><?php echo $horasProgram; ?></td>
         <td><?php echo number_format($dtP['PAYXEMP_NHORAS'] + $incNhoras,2); ?></td>
         <td>$<?php echo number_format($dtP['PAYXEMP_SALARY'] + $incSalary,2); ?></td>
+        <td><?php echo number_format($dtP['PAYXEMP_NHOLIDAY'] + $incNaddHoras,2)?></td>
+        <td>$<?php echo number_format($dtP['PAYXEMP_HOLIDAY'] + $incAddHoras,2)?></td>
         <td><?php echo number_format($dtP['PAYXEMP_NADDITIONALHOURS'] + $incNaddHoras,2)?></td>
         <td>$<?php echo number_format($dtP['PAYXEMP_ADDITIONALHOURS'] + $incAddHoras,2)?></td>
         <td><?php echo number_format($dtP['PAYXEMP_NHORASNOCT'] + $incNhnoct,2);?></td>

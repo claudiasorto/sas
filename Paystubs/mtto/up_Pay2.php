@@ -246,6 +246,7 @@ if($_POST['lsDelivery']==0){
 							$csvAttr[$rowDesAttr]['attribute'] = $dtD['disc_attributename'];
 							$sqlText = "select employee_id from employees where username='".$data['0']."'";
 							$dtIdEmp = $dbEx->selSql($sqlText);
+
 							if($dbEx->numrows>0){
 								$csvAttr[$rowDesAttr]['employee_id'] = $dtIdEmp['0']['employee_id'];
 							}
@@ -277,6 +278,18 @@ if($_POST['lsDelivery']==0){
    	$dtPaystub = $dbEx->selSql($sqlText);
    	if ($dbEx->numrows > 0) {
    		foreach ($dtPaystub as $dtP) {
+
+   			for($i=0; $i<$rowDesAttr; $i++){
+   				if($csvAttr[$i]['employee_id']==$dtP['employee_id']){
+   					$sqlText = "update paystubxemp set ".
+   								$csvAttr[$i]['attribute']." = '".$csvAttr[$i]['data']."' ".
+   								"where payxemp_id = ".$dtP['payxemp_id'] ;
+
+   					$dbEx->updSql($sqlText);
+
+   				}
+
+   			}
 
 			for($i=0; $i<$rowDescuento; $i++){
 				if($csvDescuento[$i]['employee_id']==$dtP['employee_id']){
@@ -339,6 +352,7 @@ if($_POST['lsDelivery']==0){
 					$i = $rowSeven;
 				}
 			}  
+
 
 			//Actualizar planilla por empleado
 			$boletaRslt = $sFunc->calcularPagoEmpleado(

@@ -1057,6 +1057,7 @@ function loadrpt(){
 	Emp = $("#txtEmp").val();
 	Badge = $("#txtBadge").val();
 	Estado = $("#lsEstado").val();
+	NumAp = $("#txtNumAp").val();
 	if(Fec_ini.length>=1){
 		if(Fec_fin.length>=1){
 			if(compare_dates(Fec_ini,Fec_fin)){
@@ -1073,7 +1074,8 @@ function loadrpt(){
 	$.ajax({
 	type: "POST",
 	url: "ajax/ajx_rrhh.php",
-	data: "Do=loadrpt&dpto="+Dpto+"&idAp="+IdAp+"&idAg="+IdAg+"&fec_ini="+Fec_ini+"&fec_fin="+Fec_fin+"&cuenta="+Cuenta+"&emp="+Emp+"&badge="+Badge+"&estado="+Estado,
+	data: "Do=loadrpt&dpto="+Dpto+"&idAp="+IdAp+"&idAg="+IdAg+"&fec_ini="+Fec_ini+"&fec_fin="+Fec_fin
+		+"&cuenta="+Cuenta+"&emp="+Emp+"&badge="+Badge+"&estado="+Estado+"&numAp="+NumAp,
 	success: function(rslt)
 			{
 			document.getElementById("datosrpt").innerHTML = rslt;

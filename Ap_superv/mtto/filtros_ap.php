@@ -14,6 +14,8 @@
 <option value="2">Perdientes de Aprobaci&oacute;n</option>
 <option value="3">Rechazadas</option>
 </select></td>
+<tr><td class="txtPag">N&uacute;mero de AP:&nbsp;</td>
+	<td><input type="text" id="txtNumAp" class="txtPag" size="70" /></td>
 </tr>
 <tr><td></td></tr>
 <tr><td colspan="2" align="center"><input type="button" class="ui-corner-all btn" value="Generar Reporte" onClick="loadrpt()" ></td></tr></table>

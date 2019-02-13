@@ -65,7 +65,7 @@ $oFec = new OFECHA;
 
 	case 'newEmp': //Muestra formulario para ingresar nuevos empleados
 		$rslt = cargaPag("../mtto/frm_emp.php");
-		$sqlText = "select * from account order by NAME_ACCOUNT";
+		$sqlText = "select * from account where account_status='A' order by NAME_ACCOUNT";
 		$dtC = $dbEx->selSql($sqlText);
 		$optC = "";
 		$optC .='<option value="0">Seleccione una cuenta</option>';
@@ -125,7 +125,7 @@ $oFec = new OFECHA;
 	break;
 	
 	case 'getDepart': //Obtiene los departamentos segun Cuenta
-		$sqlText = "select distinct(d.id_depart), name_depart from depart_exc d inner join placexdep pd on d.id_depart=pd.id_depart inner join account ac on pd.id_account=ac.id_account where ac.id_account=".$_POST['idC']." order by name_depart";
+		$sqlText = "select distinct(d.id_depart), name_depart from depart_exc d inner join placexdep pd on d.id_depart=pd.id_depart inner join account ac on pd.id_account=ac.id_account where ac.id_account=".$_POST['idC']." and account_status='A' order by name_depart";
 		$dtD = $dbEx->selSql($sqlText);
 		$optD = '<select id="lsDepart" onChange="getPosc(this.value,'.$_POST['idC'].')" class="txtPag">';
 		if($dbEx->numrows>0){
@@ -551,7 +551,7 @@ $oFec = new OFECHA;
 		//Datos de la cuenta, posicion, plaza y supervisor si no es aspirante o tiene estos datos registrados
 
 		//Datos de cuenta
-		$sqlText = "select * from account order by NAME_ACCOUNT";
+		$sqlText = "select * from account where account_status='A' order by NAME_ACCOUNT";
 		$dtC = $dbEx->selSql($sqlText);
 		$optC = '<select id="lsCuenta" class="txtPag" onChange="getDepart(this.value)">';
   		$optC .='<option value="0">Seleccione una cuenta</option>';
@@ -566,7 +566,7 @@ $oFec = new OFECHA;
 		//Mostrar listas de cuenta, departamento, posicion si la plaza no en CANDIDATO
         if($dtP['0']['id_account'] > 0){
 			//datos de departamento
-			$sqlText = "select distinct(d.id_depart), name_depart from depart_exc d inner join placexdep pd on d.id_depart=pd.id_depart inner join account ac on pd.id_account=ac.id_account where ac.id_account=".$dtP['0']['id_account']." order by name_depart";
+			$sqlText = "select distinct(d.id_depart), name_depart from depart_exc d inner join placexdep pd on d.id_depart=pd.id_depart inner join account ac on pd.id_account=ac.id_account where ac.id_account=".$dtP['0']['id_account']." and account_status='A' order by name_depart";
 			$dtD = $dbEx->selSql($sqlText);
 			$optD = '<select id="lsDepart" onChange="getPosc(this.value,'.$dtP['0']['id_account'].')" class="txtPag">';
 			foreach($dtD as $dtD){
@@ -640,7 +640,7 @@ $oFec = new OFECHA;
 	
 	case 'rptEmp':
 		$rslt = cargaPag("../mtto/filtrosEmp.php");
-		$sqlText = "select * from account order by name_account";
+		$sqlText = "select * from account where account_status='A' order by name_account";
 		$dtC = $dbEx->selSql($sqlText);
 		$optC = "";
 		foreach($dtC as $dtC){

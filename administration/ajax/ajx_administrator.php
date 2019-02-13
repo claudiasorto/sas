@@ -92,7 +92,7 @@ switch($_POST['Do']){
 	
 	case 'saveApp':
 		$sqlText = "insert into appxuser set app_id=".$_POST['idApp'].", employee_id=".$_POST['idE'];
-		$dbEx->insSql($sqlText);
+		$dbEx->$dbEx->insertID;($sqlText);
 		echo "2";
 	break;
 	
@@ -107,7 +107,12 @@ switch($_POST['Do']){
 		$dtAcc = $dbEx->selSql($sqlText);
 		$rslt = '<table cellpadding="2" cellspacing="0" width="600" border="0" class="tblListBack" align="center">';
 		if($dbEx->numrows>0){
-			$rslt .='<tr class="showItem"><td width="5%">Num</td><td width="25%">Account name</td><td width="25%">Account type</td><td width="25%">Description</td><td width="20%">Account status</td></tr>';
+			$rslt .='<tr class="showItem">'.
+				'<td width="5%" >Num</td>'.
+				'<td width="25%">Account name</td>'.
+				'<td width="25%">Account type</td>'.
+				'<td width="25%">Description</td>'.
+				'<td width="20%">Account status</td></tr>';
 			$n = 1;
 			foreach($dtAcc as $dtA){
 				if($dtA['ACCOUNT_STATUS']=='A'){
@@ -116,7 +121,13 @@ switch($_POST['Do']){
 				else if($dtA['ACCOUNT_STATUS']=='I'){
 					$estado = "INACTIVE";	
 				}
-				$rslt .='<tr class="rowCons"><td>'.$n.'</td><td>'.$dtA['NAME_ACCOUNT'].'</td><td align="center">'.$dtA['NAME_TYPEACC'].'</td><td>'.$dtA['DESC_ACCOUNT'].'</td><td align="center">'.$estado.'</td></tr>';	
+				$rslt .='<tr class="rowCons" title="Click to edit" style="cursor:pointer;" onclick="editAccount('.$dtA['ID_ACCOUNT'].')">'.
+					'<td>'.$n.'</td>'.
+					'<td>'.$dtA['NAME_ACCOUNT'].'</td>'.
+					'<td align="center">'.$dtA['NAME_TYPEACC'].'</td>'.
+					'<td>'.$dtA['DESC_ACCOUNT'].'</td>'.
+					'<td align="center">'.$estado.'</td></tr>
+					<tr><td colspan="5" align="center"><div id="lyUpdAcc'.$dtA['ID_ACCOUNT'].'"></div></td></tr>';	
 				$n = $n+1;	
 			}
 			$rslt .='<tr><td colspan="4" style="cursor:pointer" title="Click to add new account"><b><input type="button" value="+" onclick="formNewAccount()" class="btn"></b></td></tr>';
@@ -126,7 +137,86 @@ switch($_POST['Do']){
 		}
 		$rslt .='</table><br><br>';
 		$rslt .='<div id="lyNewAcc" style="display:none"></div>';
+
 		echo $rslt;
+	break;
+
+	case 'editAccount':
+		$rslt = cargaPag("../mtto/formEditAccount.php");
+
+		$sqlText = "select id_account, name_account, desc_account, account_status, ".
+			"name_typeacc, ac.id_typeacc ".
+			"from account ac inner join type_account ta on ac.id_typeacc=ta.id_typeacc ".
+			"where id_account = ".$_POST['id_account'];
+
+		$dtC = $dbEx->selSql($sqlText);
+
+		$sqlText = "select id_typeacc, name_typeacc from type_account";
+		$dtTpAcc = $dbEx->selSql($sqlText);
+
+		$optTpAcc = "";
+		foreach ($dtTpAcc as $dtTp) {
+			$sel = "";
+			if($dtC['0']['id_typeacc'] == $dtTp['id_typeacc']){
+				$sel = "selected";
+			}	
+			$optTpAcc .= '<option value="'.$dtTp['id_typeacc'].'" '.$sel.' >'.$dtTp['name_typeacc'].'</option>';
+		}
+
+		$selA = "";
+		$selI = "";
+		if($dtC['0']['account_status'] == 'A'){
+			$selA = "selected";
+		}
+		else{
+			$selI = "selected";
+		}
+
+		$optS = '<option value="A" '.$selA.' >ACTIVE</option>';
+		$optS .= '<option value="I" '.$selI.' >INACTIVE</option>';
+
+
+		$rslt = str_replace("<!--id_account-->",$dtC['0']['id_account'],$rslt);
+		$rslt = str_replace("<!--name_account-->",$dtC['0']['name_account'],$rslt);
+		$rslt = str_replace("<!--desc_account-->",$dtC['0']['desc_account'],$rslt);
+		$rslt = str_replace("<!--optTpAcc-->",$optTpAcc,$rslt);
+		$rslt = str_replace("<!--optS-->",$optS,$rslt);
+
+		echo $rslt;
+
+	break;
+
+	case 'updateAccount':
+		$rslt = 0;
+		$sqlText = "select count(1) c ".
+			"from employees e inner join plazaxemp pe on pe.employee_id = e.employee_id ".
+				"inner join placexdep pd on pe.id_placexdep = pd.id_placexdep ".
+			"where pe.id_plxemp = get_idultimaplaza(e.employee_id) ".
+			"and user_status = 1 ".
+			"and pd.id_account = ".$_POST['id_account'];
+
+		$dtC = $dbEx->selSql($sqlText);
+		if($dtC['0']['c'] > 0 and $_POST['status'] == 'I'){
+			$rslt = 1;
+		}
+		else{
+			try{
+
+				$sqlText = "update account set name_account = '".$_POST['name']."', ".
+					"desc_account = '".$_POST['descrip']."', id_typeacc = ".$_POST[type].", ".
+					"account_status='".$_POST['status']."' ".
+					"where id_account = ".$_POST['id_account'];
+
+				$dbEx->updSql($sqlText);
+				$rslt = 2;
+			}
+			catch (Exception $e){
+				$rslt = $e;
+			}
+		}
+
+		echo $rslt;
+
 	break;
 	
 	case 'formNewAccount':
@@ -620,6 +710,100 @@ switch($_POST['Do']){
 		}
 
 		echo $rslt;		
+
+	break;
+
+	case 'holidayForm':
+		$rslt = cargaPag("../mtto/formHoliday.php");
+		$sqlText = "select geography_code, geography_name ".
+					"from geographies ".
+					"where geography_type = 'COUNTRY' ".
+					"and end_date is null ".
+					"order by geography_name";
+
+		$dtGeo = $dbEx->selSql($sqlText);
+		if($dbEx->numrows>0){
+			$optG = '<option value="0">Select a country</option>';
+			foreach($dtGeo as $dtG){
+				$sel = "";
+				if($dtG['geography_code'] == 'SV'){
+					$sel = "selected";
+				}
+				$optG .='<option value="'.$dtG['geography_code'].'" '.$sel.'>'.$dtG['geography_name'].'</option>';
+			}
+		}
+		$rslt = str_replace("<!--optG-->",$optG,$rslt); 
+		echo $rslt;
+	break;
+
+	case 'saveHoliday':
+
+		$date = $oFec->cvDtoY($_POST['date']);
+
+		//Validar que no exista otro feriado el mismo dia en el mismo pais
+		$sqlText = "select count(1) c from holidays ".
+			"where geography_code = '".$_POST['geo']."' ".
+			"and holiday = '".$date."'";
+
+		$dtC = $dbEx->selSql($sqlText);
+
+		if($dtC['0']['c'] == 0){
+
+			$sqlText = "insert into holidays(holiday_name, holiday, geography_code) ".
+				"values('".$_POST['name']."','".$date."','".$_POST['geo']."') ";
+
+			$dbEx->insSql($sqlText);
+			$id = $dbEx->insertID;
+			echo $id;
+		}
+		else{
+			echo "0";
+		}
+
+	break;
+
+	case 'searchHoliday':
+
+		$filtro = "";
+		if(strlen($_POST['holidayId'])>0){
+			$filtro .=" and holiday_id = ".$_POST['holidayId']." ";
+		}
+		if(strlen($_POST['name'])>0){
+			$filtro .=" and holiday_name = '".$_POST['name']."' ";
+		}
+		if(strlen($_POST['date'])>0){
+			$date = $oFec->cvDtoY($_POST['date']);
+			$filtro .=" and holiday = '".$date."' ";
+		}
+		if($_POST['geo']>0){
+			$filtro .=" and geography_code = '".$_POST['geo']."' ";
+		}
+
+		$sqlText = "select geography_code, holiday_name, holiday_id, ".
+			"date_format(holiday,'%d/%m/%Y') holiday ".
+			"from holidays ".
+			"where 1 = 1 ".$filtro." ".
+			"order by holiday";
+
+		$dtHo = $dbEx->selSql($sqlText);
+		$tbl = '<table align="center" cellpadding="2" cellspacing="0" width="600" border="0" class="tblListBack">'.
+				'<tr class="showItem"><td>Country</td><td>Name</td><td>Date</td><td></td></tr>';
+		foreach ($dtHo as $dtH) {
+			$tbl .='<tr class="rowCons" align="center"><td>'.$dtH['geography_code'].'</td>'.
+				'<td>'.$dtH['holiday_name'].'</td>'.
+				'<td>'.$dtH['holiday'].'</td>'.
+				'<td><img src="images/elim.png" title="Click to delete" onclick="delHoliday('.$dtH['holiday_id'].')"></td></tr>';
+		}
+		$tbl .= '</table>';
+		echo $tbl;
+
+	break;
+
+	case 'delHoliday':
+
+		$sqlText = "delete from holidays where holiday_id = ".$_POST['holidayId'];
+		$dbEx->updSql($sqlText);
+		echo $_POST['holidayId'];
 
 	break;
 
