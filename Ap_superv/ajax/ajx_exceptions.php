@@ -674,16 +674,17 @@ switch($_POST['Do']){
 	
 	//Segun filtros seleccionados genera reporte de Exceptions
 	case 'loadRptException':
-		$filtro = " where user_status=1 and pe.status_plxemp='A' ";
+		$filtro = " where user_status=1 and pe.id_plxemp = get_idultimaplaza(e.employee_id) ";
 		if($_SESSION['usr_rol']=='SUPERVISOR'){
 			$filtro .=" and e.id_supervisor=".$_SESSION['usr_id'];
 		}
+		/*
 		else if($_SESSION['usr_rol']=='GERENTE DE AREA'){
 			$filtro .=" ";
 		}
 		else{
 			$filtro .=" and (name_role='AGENTE' or name_role='SUPERVISOR') and ".$_SESSION['usr_depart']." in (exceptiontp_depart)";	
-		}
+		}*/
 		
 		if(strlen($_POST['fechaIni'])>0){
 			$fechaIni = $oFec->cvDtoY($_POST['fechaIni']);
@@ -703,7 +704,17 @@ switch($_POST['Do']){
 			 $filtro .= " and (e.username like '%".strtoupper($_POST['badge'])."%')";
 		}
 		if($_POST['tpReport']==1){//Genera reporte en detalle
-			$sqlText = "select distinct(ex.exceptionemp_id) as exceptionemp_id, e.employee_id, date_format(exceptionemp_date,'%d/%m/%Y') as f1, exceptionemp_hini, exceptionemp_hfin, ex.exceptiontp_id, exceptionemp_comment, exceptionemp_approved, exceptionemp_authorizer, exceptionemp_creator, exceptiontp_name, e.username, firstname, lastname from exceptionxemp ex inner join exceptions_type tp on ex.exceptiontp_id=tp.exceptiontp_id inner join employees e on e.employee_id=ex.employee_id inner join plazaxemp pe on e.employee_id=pe.employee_id inner join placexdep pd on pd.id_placexdep=pe.id_placexdep inner join user_roles ur on ur.id_role=pd.id_role  ".$filtro." order by exceptionemp_date desc, ex.exceptionemp_id desc";
+			$sqlText = "select distinct(ex.exceptionemp_id) as exceptionemp_id, ".
+				"e.employee_id, date_format(exceptionemp_date,'%d/%m/%Y') as f1, ".
+				"exceptionemp_hini, exceptionemp_hfin, ex.exceptiontp_id, exceptionemp_comment, ".
+				"exceptionemp_approved, exceptionemp_authorizer, exceptionemp_creator, exceptiontp_name, ".
+				" e.username, firstname, lastname ".
+				"from exceptionxemp ex inner join exceptions_type tp on ex.exceptiontp_id=tp.exceptiontp_id ".
+				"inner join employees e on e.employee_id=ex.employee_id ".
+				"inner join plazaxemp pe on e.employee_id=pe.employee_id ".
+				"inner join placexdep pd on pd.id_placexdep=pe.id_placexdep ".
+				"inner join user_roles ur on ur.id_role=pd.id_role  ".
+				$filtro." order by exceptionemp_date desc, ex.exceptionemp_id desc";
 			$dtEx = $dbEx->selSql($sqlText);
 			$tblExceptions ="";
 			$tblExceptions .='<div id="lyReport"></div>';
@@ -770,7 +781,10 @@ switch($_POST['Do']){
 		}
 		else if($_POST['tpReport']==2){ //Genera reporte totales
 			
-			$sqlText = "select e.employee_id, username, firstname, lastname, sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos from exceptionxemp ex inner join employees e on e.employee_id=ex.employee_id ".$filtro." group by employee_id order by firstname";
+			$sqlText = "select e.employee_id, username, firstname, lastname, sum(HOUR(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as hora, sum(MINUTE(TIMEDIFF(exceptionemp_hfin, exceptionemp_hini))) as minutos ".
+			"from exceptionxemp ex inner join employees e on e.employee_id=ex.employee_id ".
+			"inner join plazaxemp pe on e.employee_id=pe.employee_id ".
+			$filtro." group by employee_id order by firstname";
 			$dtEx = $dbEx->selSql($sqlText);
 			$tblExceptions = '<table width="825" class="tblResult" bordercolor="#069" align="center" cellpadding="2" cellspacing="2">';
 			if($dbEx->numrows>0){

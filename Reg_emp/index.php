@@ -36,7 +36,7 @@ $dbEx = new DBX;
 	<script type="text/javascript" src="calendar/lang/calendar-es.js"></script>
 	<!-- helper script that uses the calendar -->
 	<script type="text/javascript" src="js/calen_js.js"></script>
-    <script src="js/js_emp.js"></script>;
+    <script src="js/js_emp.js"></script>
     <script type="text/javascript" language="javascript">
   function closeThis(){
     if(confirm("Desea cerrar la aplicación")){

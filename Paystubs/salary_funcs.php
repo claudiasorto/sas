@@ -263,7 +263,7 @@ class SAL{
 		$dtHorasNoc = $dbEx->selSql($sqlText);
 		if($dbEx->numrows>0){
 			$horasNoct = $dtHorasNoc['0']['pn'];
-			$dineroNoct = (($salarioEmp/$horasProgram)*0.25)*$dtHorasNoc['0']['pn'];
+			$dineroNoct = (($salarioEmp/$horasProgram)*0.254)*$dtHorasNoc['0']['pn'];
 		}
 		//Calculo de horas extras diurnas
 		$sqlText = "select ifnull(round(((SUM(TIME_TO_SEC(exceptionemp_hfin))) - (SUM(TIME_TO_SEC(exceptionemp_hini)))) /3600,2),0) as h_extra ".

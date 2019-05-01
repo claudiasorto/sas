@@ -8,7 +8,9 @@
   header("Content-type: application/vnd.ms-excel; charset=utf-8"); 
   header("Content-Disposition: attachment; filename=rpt_payroll".$dtExt['0']['timestamp'].".xls");
   
-  $sqlText = "select distinct(e.employee_id), e.username, e.firstname, e.lastname ".
+  $sqlText = "select distinct(e.employee_id), e.username, ".
+  					"e.firstname, ".
+  					"e.lastname ".
 					"from employees e inner join plazaxemp pe on e.employee_id=pe.employee_id ".
 					"inner join placexdep pd on pe.id_placexdep = pd.id_placexdep ".
 					"inner join user_roles u on u.id_role=pd.id_role ".$_POST['filtro']." order by firstname";
@@ -22,21 +24,22 @@
  <?php 
  if($dbEx->numrows>0){
  ?>
- <tr class="txtForm">
- 	<td>N&deg;</td>
- 	<td>BADGE</td>
- 	<td>EMPLOYEE</td>
- 	<td>DAYTIME HOURS</td>
- 	<td>NOCTURNAL HOURS</td>
- 	<td>AP HOURS</td>
- 	<td>VACATIONS</td>
- 	<td>EXCEPTION HOURS</td>
- 	<td>ADDITIONAL HOURS</td>
- 	<td>HOLIDAY</td>
- 	<td>DAY OVERTIME</td>
- 	<td>NIGTH OVERTIME</td>
- 	<td>HOLIDAY OVERTIME</td>
- 	<td>TOTAL HOURS</td></tr>
+ <tr>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">N&deg;</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">BADGE</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">EMPLOYEE</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">DAYTIME HOURS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">NOCTURNAL HOURS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">AP HOURS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">VACATIONS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">EXCEPTION HOURS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">ADDITIONAL HOURS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">HOLIDAY</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">DAY OVERTIME</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">NIGTH OVERTIME</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">HOLIDAY OVERTIME</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">TOTAL WORKED HOURS</font></td>
+ 	<td bgcolor="#003366"><font color="#FFFFFF">TOTAL PROGRAMMED HOURS</font></td></tr>
  <?php 
  	$n = 1;
  	foreach($dt as $dtE){
@@ -107,7 +110,8 @@
 				$horasPaidHoliday = 0.0;
 				$horasDayOvertime = 0.0;
 				$horasNightOvertime = 0.0;
-				$horasHolidayOvertime = 0.0;;
+				$horasHolidayOvertime = 0.0;
+				$totalProgramadas = 0.0;
 
 				if($dbEx->numrows>0){
 					$horasTotal = $dtPay['0']['stotal'];
@@ -253,6 +257,20 @@
 						+ $horasDayOvertime
 						+ $horasNightOvertime
 						+ $horasHolidayOvertime;
+
+				//Horas Programadas
+				$totalProgramadas = 0;
+
+				$sqlText = "select round((((SUM(ifnull(TIME_TO_SEC(sch_departure),0))) - (SUM(ifnull(TIME_TO_SEC(sch_entry),0)))) -  ".
+                            "((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - (SUM(ifnull(TIME_TO_SEC(sch_lunchout),0)))))/3600,2) sumhoras  ".
+    						" from schedules ".
+    						" where employee_id = ".$dtE['employee_id'].
+							" and sch_date between date '".$fec_ini."' and '".$fec_fin."'";
+
+				$dtProgramadas = $dbEx->selSql($sqlText);
+				if($dbEx->numrows>0 and $dtProgramadas['0']['sumhoras']!=NULL){
+					$totalProgramadas = $dtProgramadas['0']['sumhoras'];
+				}
  
  ?>
 			<tr>
@@ -269,7 +287,8 @@
 				<td><?php echo round($horasDayOvertime,2); ?></td>
 				<td><?php echo round($horasNightOvertime,2); ?></td>
 				<td><?php echo round($horasHolidayOvertime,2); ?></td>
-				<td><?php echo round($horasTotal,2); ?></td></tr>
+				<td><?php echo round($horasTotal,2); ?></td>
+				<td><?php echo round($totalProgramadas,2); ?></td></tr>
 		
  <?php
  		$n = $n+1;

@@ -440,7 +440,7 @@ else{
 					//Ingresa la exception
 					else if($exception ==1){
 						$sqlText = "insert into exceptionxemp set employee_id=".$employees[$i]['employee_id'].", exceptionemp_date='".$fecha."', ".
-						 "exceptionemp_hini='00:00:00', exceptionemp_hfin='".$horasExc."', ".
+						 "exceptionemp_hini='00:00:00', exceptionemp_hfin='".$totalHoras."', ".
 						 "exceptiontp_id=9, ".
 						 "exceptionemp_comment='exceeds the programmed hours of ".$HProg." hours' ";
 

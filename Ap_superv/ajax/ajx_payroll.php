@@ -647,14 +647,14 @@ switch($_POST['Do']){
 		$dtEmp = $dbEx->selSql($sqlText);
 		$tblPay = '<table width="925" class="backTablaMain" bordercolor="#069" align="center" cellpadding="2" cellspacing="2">';
 		if($dbEx->numrows>0){
-			$tblPay .='<tr><td colspan="11">Matches: '.$dbEx->numrows.'</td>';
+			$tblPay .='<tr><td colspan="12">Matches: '.$dbEx->numrows.'</td>';
 			$tblPay .='<td colspan="2" align="rigth">'.
 				'<form target="_blank" action="payroll/xls_rptpayroll.php" method="post">'.
 				'<input type="image" src="images/excel.png" alt="Exportar a excel" width="30" style="cursor:pointer" title="Export to excel" />&nbsp;&nbsp;'.
 				'<input type="hidden" name="filtro" value="'.$filtro.'">'.
 				'<input type="hidden" name="fec_ini" value="'.$fec_ini.'">'.
 				'<input type="hidden" name="fec_fin" value="'.$fec_fin.'"></td></tr>';
-			$tblPay .='<tr><td colspan="14" align="center" class="txtForm">REPORT OF PAYROLL TO '.$_POST['fecIni'].' THE '.$_POST['fecFin'].'</td></tr>';
+			$tblPay .='<tr><td colspan="15" align="center" class="txtForm">REPORT OF PAYROLL TO '.$_POST['fecIni'].' THE '.$_POST['fecFin'].'</td></tr>';
 			
 			$tblPay .='<tr class="txtForm">'.
 				'<td width="5%">N&deg;</td>'.
@@ -670,7 +670,8 @@ switch($_POST['Do']){
 				'<td width="8%">DAY OVERTIME</td>'.
 				'<td width="8%">NIGHT OVERTIME</td>'.
 				'<td width="8%">HOLIDAY OVERTIME</td>'.
-				'<td width="8%">TOTAL HOURS</td></tr>';
+				'<td width="8%">TOTAL WORKED HOURS</td>'.
+				'<td width="8%">TOTAL PROGRAMMED HOURS</td></tr>';
 			$n =1;
 			foreach($dtEmp as $dtE){
 				//Obtiene horas de payroll para el periodo
@@ -741,7 +742,8 @@ switch($_POST['Do']){
 				$horasPaidHoliday = 0.0;
 				$horasDayOvertime = 0.0;
 				$horasNightOvertime = 0.0;
-				$horasHolidayOvertime = 0.0;;
+				$horasHolidayOvertime = 0.0;
+				$totalProgramadas = 0.0;
 
 				if($dbEx->numrows>0){
 					$horasTotal = $dtPay['0']['stotal'];
@@ -887,6 +889,20 @@ switch($_POST['Do']){
 						+ $horasDayOvertime
 						+ $horasNightOvertime
 						+ $horasHolidayOvertime;
+
+				//Horas Programadas
+				$totalProgramadas = 0;
+
+				$sqlText = "select round((((SUM(ifnull(TIME_TO_SEC(sch_departure),0))) - (SUM(ifnull(TIME_TO_SEC(sch_entry),0)))) -  ".
+                            "((SUM(ifnull(TIME_TO_SEC(sch_lunchin),0))) - (SUM(ifnull(TIME_TO_SEC(sch_lunchout),0)))))/3600,2) sumhoras  ".
+    						" from schedules ".
+    						" where employee_id = ".$dtE['employee_id'].
+							" and sch_date between date '".$fec_ini."' and '".$fec_fin."'";
+
+				$dtProgramadas = $dbEx->selSql($sqlText);
+				if($dbEx->numrows>0 and $dtProgramadas['0']['sumhoras']!=NULL){
+					$totalProgramadas = $dtProgramadas['0']['sumhoras'];
+				}
 				
 				
 				$tblPay .= '<tr><td>'.$n.'</td>'.
@@ -902,7 +918,8 @@ switch($_POST['Do']){
 						'<td>'.round($horasDayOvertime,2).'</td>'.
 						'<td>'.round($horasNightOvertime,2).'</td>'.
 						'<td>'.round($horasHolidayOvertime,2).'</td>'.
-						'<td>'.round($horasTotal,2).'</td></tr>';
+						'<td>'.round($horasTotal,2).'</td>'.
+						'<td>'.round($totalProgramadas,2).'</td></tr>';
 				$n = $n+1;
 			}
 		}

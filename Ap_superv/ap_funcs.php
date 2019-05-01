@@ -227,27 +227,27 @@ class APPR
 				$result = 1;
    			}
 
-		}
+   			//Si la ap esta aprobada y es de tipo baja se dara de baja la plaza activa del empleado y al empleado
+			if($result == 1){
+				$sqlText = "update employees set user_status=0 where employee_id = ".
+								"(select ape.employee_id ".
+								"from apxemp ape inner join type_ap tp on ape.id_tpap = tp.id_tpap ".
+								"where tp.inactive_employee = 'Y' and ape.approved_status = 'A' ".
+								"and id_apxemp = ".$IdAp." ) ";
 
-		//Si la ap esta aprobada y es de tipo baja se dara de baja la plaza activa del empleado y al empleado
-		if($result == 1){
-			$sqlText = "update employees set user_status=0 where employee_id = ".
-							"(select ape.employee_id ".
-							"from apxemp ape inner join type_ap tp on ape.id_tpap = tp.id_tpap ".
-							"where tp.inactive_employee = 'Y' and ape.approved_status = 'A' ".
-							"and id_apxemp = ".$IdAp." ) ";
+				$dbEx->updSql($sqlText);
+	    
+				$sqlText = "update plazaxemp set status_plxemp='I', end_date = CURDATE() ".
+							"where employee_id = (select ape.employee_id ".
+								"from apxemp ape inner join type_ap tp on ape.id_tpap = tp.id_tpap ".
+								"where tp.inactive_employee = 'Y' ".
+								"and ape.approved_status = 'A' ".
+								"and id_apxemp = ".$IdAp." ) ".
+	    					"and status_plxemp = 'A' ";
 
-			$dbEx->updSql($sqlText);
-    
-			$sqlText = "update plazaxemp set status_plxemp='I', end_date = CURDATE() ".
-						"where employee_id = (select ape.employee_id ".
-							"from apxemp ape inner join type_ap tp on ape.id_tpap = tp.id_tpap ".
-							"where tp.inactive_employee = 'Y' ".
-							"and ape.approved_status = 'A' ".
-							"and id_apxemp = ".$IdAp." ) ".
-    					"and status_plxemp = 'A' ";
+	    		$dbEx->updSql($sqlText);
 
-    		$dbEx->updSql($sqlText);
+			}
 
 		}
 

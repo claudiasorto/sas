@@ -374,6 +374,9 @@ $oFec = new OFECHA;
 					}
 					$sqlText = "insert into appxuser set app_id=3, employee_id=".$dtU['0']['employee_id'];
 					$dbEx->insSql($sqlText);
+					$sqlText = "insert into appxuser set app_id=5, employee_id=".$dtU['0']['employee_id'];
+					$dbEx->insSql($sqlText);
+					
 					$sqlText = "select name_place from places p inner join placexdep pd on p.id_place=pd.id_place where id_placexdep=".$_POST['posc'];
 					$dtPla = $dbEx->selSql($sqlText);
 					if($dtPla['0']['name_place']=='QUALITY AGENT'){

@@ -92,7 +92,8 @@ switch($_POST['Do']){
 	
 	case 'saveApp':
 		$sqlText = "insert into appxuser set app_id=".$_POST['idApp'].", employee_id=".$_POST['idE'];
-		$dbEx->$dbEx->insertID;($sqlText);
+		$dbEx->insSql($sqlText);
+		$dbEx->insertID;
 		echo "2";
 	break;
 	
