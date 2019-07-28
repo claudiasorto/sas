@@ -8,7 +8,15 @@ $dbEx = new DBX;
     //no se ha logueado
 	header("location: ../Skycom/index.php");
   }
-  $sqlText = "select name_place from places pl inner join placexdep pd on pl.id_place=pd.id_place inner join plazaxemp pe on pe.id_placexdep=pd.id_placexdep inner join employees e on e.employee_id=pe.employee_id where e.employee_id=".$_SESSION['usr_id']." and pe.status_plxemp='A' and user_status=1";
+
+  $sqlText = "select name_place ".
+        "from plazaxemp pe inner join placexdep pd on pe.id_placexdep = pd.id_placexdep ".
+        "inner join places pl on pl.id_place = pd.id_place ".
+        "where id_plxemp = get_idultimaplaza(".$_SESSION['usr_id'].")";
+
+
+
+
   $dtCont = $dbEx->selSql($sqlText);
 
 ?>
@@ -118,14 +126,20 @@ $dbEx = new DBX;
 	</li>
     <?php 
 	//$_SESSION['usr_rol']!='MANTENIMIENTO' and $_SESSION['usr_rol']!='AGENTE' or 
-	if($_SESSION['usr_rol']=='GERENCIA' or $dtCont['0']['name_place']=='ACCOUNTING MANAGER'  or $_SESSION['usr_rol']=='GERENTE DE AREA' or $_SESSION['usr_rol']=='SUPERVISOR'){ ?>	
+	if($_SESSION['usr_rol']=='GERENCIA' 
+        or $dtCont['0']['name_place']=='ACCOUNTING MANAGER' 
+        or $dtCont['0']['name_place']=='ACCOUNTANT ASSISTANT' 
+        or $_SESSION['usr_rol']=='GERENTE DE AREA' 
+        or $_SESSION['usr_rol']=='SUPERVISOR'){ ?>	
 	<li>
 		<a href="#">Administration of Pay stubs</a>
         <ul>
         <li><a href="#" onclick="employeesPayStubs()">Pay stub employees </a></li>
         <?php
 		
-		if($_SESSION['usr_rol']=='GERENCIA' or $dtCont['0']['name_place']=='ACCOUNTING MANAGER'){
+		if($_SESSION['usr_rol']=='GERENCIA' 
+            or $dtCont['0']['name_place']=='ACCOUNTING MANAGER' 
+            or $dtCont['0']['name_place']=='ACCOUNTANT ASSISTANT'){
 			?>
             <li><a href="#" onclick="calcularPay()">Payments summary</a></li>
             <li><a href="#" onclick="createPay()">Create paystub</a> </li>
